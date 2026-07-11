@@ -25,6 +25,18 @@ DOCS = [
      [(r'<h2', '</h2>', 2), (r'<h3', '</h3>', 3)]),
 ]
 
+# 注入到每个文档 <head> 的 CSS：让容器填满 iframe（覆盖原始 max-width 约束）
+INJECT_CSS = """
+<style id="__awb-override">
+/* 全集 iframe 模式：取消固定宽度，内容铺满 */
+.container{max-width:100%!important;padding:28px 20px 60px!important;}
+body{padding:0!important;}
+.hero,.section-title{text-align:left!important;}
+pre{max-width:100%!important;overflow-x:auto!important;}
+table{max-width:100%!important;display:table!important;}
+</style>
+"""
+
 # 注入到每个文档 <body> 末尾的脚本：负责 iframe 内滚动高亮 + 响应父页面跳转
 INJECT_JS = """
 <script>
@@ -68,7 +80,8 @@ for docid, fn, title, desc, rules in DOCS:
             new_open = open_full[:-1] + f' id="{anchor}"' + '>'
             return f'{new_open}{inner}{close_tag}'
         html = re.sub(pattern, repl, html, flags=re.S)
-    # 注入滚动脚本（在 </body> 前）
+    # 注入覆盖 CSS（让容器填满 iframe）+ 滚动脚本
+    html = html.replace("</head>", INJECT_CSS + "</head>", 1)
     html = html.replace("</body>", INJECT_JS + "</body>", 1)
     templates[docid] = html
 
@@ -91,7 +104,7 @@ html,body{margin:0;padding:0;height:100%;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   background:#070a10;color:#c3ccd8;overflow:hidden;}
 .shell{display:flex;height:100vh;}
-.sidebar{position:fixed;left:0;top:0;width:320px;height:100vh;overflow-y:auto;
+.sidebar{position:fixed;left:0;top:0;width:280px;height:100vh;overflow-y:auto;
   background:linear-gradient(180deg,#0c1018,#0a0d13);border-right:1px solid rgba(120,140,170,.18);
   padding:22px 0 60px;font-size:13px;z-index:50;}
 .sidebar-title{font-size:16px;font-weight:700;color:#e8eef7;padding:0 20px 6px;letter-spacing:.3px;}
@@ -107,12 +120,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .toc-h3{padding-left:34px;font-size:12px;color:#828d9d;}
 .toc-home{font-weight:700;color:#e8eef7;background:rgba(63,185,80,.08);border-left:2px solid #3fb950;margin-bottom:4px;}
 .toc-link.active{color:#fff;background:rgba(63,185,80,.14);border-left:2px solid #3fb950;}
-.content{margin-left:320px;height:100vh;overflow:hidden;background:#0a0d13;}
+.content{margin-left:280px;height:100vh;overflow:hidden;background:#0a0d13;}
 .viewer{width:100%;height:100%;border:0;display:block;background:#0a0d13;}
 .menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:60;background:#1a2030;color:#e8eef7;
   border:1px solid rgba(120,140,170,.3);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;}
 @media(max-width:900px){
-  .sidebar{transform:translateX(-100%);transition:.25s;width:290px;}
+  .sidebar{transform:translateX(-100%);transition:.25s;width:260px;}
   .sidebar.open{transform:translateX(0);}
   .content{margin-left:0;}
   .menu-btn{display:block;}

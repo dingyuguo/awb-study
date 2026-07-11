@@ -11,7 +11,7 @@ html,body{margin:0;padding:0;height:100%;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   background:#070a10;color:#c3ccd8;overflow:hidden;}
 .shell{display:flex;height:100vh;}
-.sidebar{position:fixed;left:0;top:0;width:320px;height:100vh;overflow-y:auto;
+.sidebar{position:fixed;left:0;top:0;width:280px;height:100vh;overflow-y:auto;
   background:linear-gradient(180deg,#0c1018,#0a0d13);border-right:1px solid rgba(120,140,170,.18);
   padding:22px 0 60px;font-size:13px;z-index:50;}
 .sidebar-title{font-size:16px;font-weight:700;color:#e8eef7;padding:0 20px 6px;letter-spacing:.3px;}
@@ -27,12 +27,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .toc-h3{padding-left:34px;font-size:12px;color:#828d9d;}
 .toc-home{font-weight:700;color:#e8eef7;background:rgba(63,185,80,.08);border-left:2px solid #3fb950;margin-bottom:4px;}
 .toc-link.active{color:#fff;background:rgba(63,185,80,.14);border-left:2px solid #3fb950;}
-.content{margin-left:320px;height:100vh;overflow:hidden;background:#0a0d13;}
+.content{margin-left:280px;height:100vh;overflow:hidden;background:#0a0d13;}
 .viewer{width:100%;height:100%;border:0;display:block;background:#0a0d13;}
 .menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:60;background:#1a2030;color:#e8eef7;
   border:1px solid rgba(120,140,170,.3);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;}
 @media(max-width:900px){
-  .sidebar{transform:translateX(-100%);transition:.25s;width:290px;}
+  .sidebar{transform:translateX(-100%);transition:.25s;width:260px;}
   .sidebar.open{transform:translateX(0);}
   .content{margin-left:0;}
   .menu-btn{display:block;}
@@ -548,6 +548,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
             .hero h1 { font-size: 24px; }
         }
     </style>
+
+<style id="__awb-override">
+/* 全集 iframe 模式：取消固定宽度，内容铺满 */
+.container{max-width:100%!important;padding:28px 20px 60px!important;}
+body{padding:0!important;}
+.hero,.section-title{text-align:left!important;}
+pre{max-width:100%!important;overflow-x:auto!important;}
+table{max-width:100%!important;display:table!important;}
+</style>
 </head>
 <body>
 <div class="container">
@@ -1598,6 +1607,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
         strong { color: var(--text-bright); }
         code { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono','Menlo',monospace; font-size: 13px; color: var(--teal); }
     </style>
+
+<style id="__awb-override">
+/* 全集 iframe 模式：取消固定宽度，内容铺满 */
+.container{max-width:100%!important;padding:28px 20px 60px!important;}
+body{padding:0!important;}
+.hero,.section-title{text-align:left!important;}
+pre{max-width:100%!important;overflow-x:auto!important;}
+table{max-width:100%!important;display:table!important;}
+</style>
 </head>
 <body>
 <div class="container">
@@ -1955,6 +1973,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   .note{font-size:12.5px;color:var(--dim);font-style:italic}
   .hl{color:var(--cyan);font-weight:600}
   .hlw{color:var(--gold);font-weight:600}
+</style>
+
+<style id="__awb-override">
+/* 全集 iframe 模式：取消固定宽度，内容铺满 */
+.container{max-width:100%!important;padding:28px 20px 60px!important;}
+body{padding:0!important;}
+.hero,.section-title{text-align:left!important;}
+pre{max-width:100%!important;overflow-x:auto!important;}
+table{max-width:100%!important;display:table!important;}
 </style>
 </head>
 <body>
@@ -2507,6 +2534,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   .chip.hot{background:rgba(79,209,255,.14);color:#9fe3ff;border:1px solid rgba(79,209,255,.3)}
   .chip.open{background:rgba(255,209,102,.13);color:#ffe0a3;border:1px solid rgba(255,209,102,.3)}
   .chip.fut{background:rgba(192,132,252,.14);color:#d6b3ff;border:1px solid rgba(192,132,252,.3)}
+</style>
+
+<style id="__awb-override">
+/* 全集 iframe 模式：取消固定宽度，内容铺满 */
+.container{max-width:100%!important;padding:28px 20px 60px!important;}
+body{padding:0!important;}
+.hero,.section-title{text-align:left!important;}
+pre{max-width:100%!important;overflow-x:auto!important;}
+table{max-width:100%!important;display:table!important;}
 </style>
 </head>
 <body>
@@ -3103,6 +3139,15 @@ a:hover{text-decoration:underline;}
 .references li{margin-bottom:8px;}
 .footer{margin-top:40px;text-align:center;color:var(--text-dim);font-size:12px;}
 .kicker{display:inline-block;background:rgba(57,197,207,0.12);color:var(--teal);padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-bottom:14px;letter-spacing:.5px;}
+</style>
+
+<style id="__awb-override">
+/* 全集 iframe 模式：取消固定宽度，内容铺满 */
+.container{max-width:100%!important;padding:28px 20px 60px!important;}
+body{padding:0!important;}
+.hero,.section-title{text-align:left!important;}
+pre{max-width:100%!important;overflow-x:auto!important;}
+table{max-width:100%!important;display:table!important;}
 </style>
 </head>
 <body>
