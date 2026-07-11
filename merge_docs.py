@@ -64,6 +64,16 @@ templates = {}    # docid -> 完整 HTML（含注入脚本）
 
 for docid, fn, title, desc, rules in DOCS:
     html = read_full(fn)
+    # ★ 全宽修复：清除所有固定 max-width 约束，让内容铺满 iframe
+    # 1) .container 固定宽度 → 全宽
+    html = re.sub(r'\.container\s*\{[^}]*max-width\s*:\s*\d+(px|rem|em)[^}]*\}',
+                  '.container { width: 100%; max-width: none; padding: 28px 20px 60px; }', html)
+    # 2) 其余所有 CSS 规则中的固定 max-width → none 或 100%（排除 media query 和 !important）
+    html = re.sub(r'(?<!\n)(?<!\w)(max-width)\s*:\s*(\d+(?:\.\d+)?(px|rem|em|%))(?!\s*!important)',
+                  lambda m: f"{m.group(1)}: {'none' if m.group(3) in ('px','rem','em') else '100%'}", html)
+    # 3) .hero 居中 → 左对齐
+    html = re.sub(r'(\.hero\s*\{[^}]*)text-align\s*:\s*center',
+                  r'\1text-align: left', html)
     # 加锚点
     for open_re, close_tag, level in rules:
         close_re = re.escape(close_tag)
