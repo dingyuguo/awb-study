@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local AWB 研究热点与待解难题 · 深度技术综述</title>
+<style>
+  :root{
+    --bg:#0d0f15; --panel:#151823; --panel2:#1b1f2e; --line:#2a2f42;
+    --txt:#e6e9f2; --mut:#9aa3bd; --acc:#4fd1ff; --acc2:#ffb74d;
+    --rgb:#ff6b6b; --rgbg:#7bed9f; --rgbb:#74b9ff;
+    --ms:#c084fc; --ms2:#ffd166; --ok:#51e898; --warn:#ffd166; --bad:#ff7675;
+    --mono:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;line-height:1.75;font-size:15.5px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 120px}
+  header.hero{background:linear-gradient(135deg,#10131d 0%,#191d2e 60%,#241a2e 100%);border-bottom:1px solid var(--line);padding:54px 22px 40px;margin-bottom:8px}
+  .hero .inner{max-width:1080px;margin:0 auto}
+  .kick{color:var(--acc);font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+  h1{font-size:34px;line-height:1.25;font-weight:800;letter-spacing:-.5px;margin-bottom:14px;background:linear-gradient(90deg,#fff,#9fd8ff 60%,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--mut);font-size:16px;max-width:760px}
+  .meta{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+  .pill{background:var(--panel2);border:1px solid var(--line);border-radius:30px;padding:6px 14px;font-size:12.5px;color:var(--mut);font-family:var(--mono)}
+  .pill b{color:var(--acc)}
+  nav.toc{position:sticky;top:0;z-index:30;background:rgba(13,15,21,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:10px 0;margin-bottom:30px}
+  nav.toc .inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin}
+  nav.toc a{flex:0 0 auto;color:var(--mut);text-decoration:none;font-size:12.5px;padding:5px 11px;border:1px solid transparent;border-radius:8px;white-space:nowrap}
+  nav.toc a:hover{color:var(--txt);border-color:var(--line);background:var(--panel2)}
+  section{margin:46px 0;scroll-margin-top:64px}
+  h2{font-size:25px;font-weight:750;margin:0 0 6px;padding-bottom:12px;border-bottom:1px solid var(--line);position:relative}
+  h2 .num{color:var(--acc);font-family:var(--mono);font-size:18px;margin-right:10px;opacity:.85}
+  h3{font-size:19px;font-weight:700;margin:32px 0 10px;color:#dce6ff}
+  h3 .t{color:var(--acc2);font-family:var(--mono);font-size:14px;margin-right:8px}
+  h4{font-size:16px;font-weight:680;margin:22px 0 8px;color:#cdd6f0}
+  p{margin:12px 0;color:#d4d9e8}
+  .lead{font-size:16px;color:#c7cee3}
+  ul,ol{margin:12px 0 12px 24px}
+  li{margin:7px 0}
+  strong{color:#fff}
+  code{font-family:var(--mono);background:var(--panel2);padding:1.5px 6px;border-radius:5px;font-size:13px;color:#ffd9a8}
+  .formula{background:#0a0c12;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:14px 18px;margin:16px 0;font-family:var(--mono);font-size:13.5px;color:#cfe3ff;overflow-x:auto;white-space:pre}
+  .formula .c{color:var(--mut)}
+  .callout{border-radius:12px;padding:16px 20px;margin:18px 0;border:1px solid var(--line);background:var(--panel)}
+  .callout.key{border-left:4px solid var(--acc)}
+  .callout.warn{border-left:4px solid var(--warn);background:linear-gradient(90deg,rgba(255,209,102,.06),transparent)}
+  .callout.future{border-left:4px solid var(--ms)}
+  .callout .h{font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .callout.key .h{color:var(--acc)} .callout.warn .h{color:var(--warn)} .callout.future .h{color:var(--ms)}
+  .grid{display:grid;gap:14px;margin:18px 0}
+  .grid.c2{grid-template-columns:1fr 1fr}
+  .grid.c3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.grid.c2,.grid.c3{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card h4{margin-top:0;color:var(--acc)}
+  .card .tag{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;margin:0 6px 8px 0}
+  .card .pub{font-size:12px;color:var(--mut);font-style:italic;margin-top:8px}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:#cfe0ff;font-weight:650;font-size:12.5px}
+  td{color:#d2d8e8}
+  tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+  .good{color:var(--ok);font-weight:600} .bad{color:var(--bad);font-weight:600}
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin:22px 0;text-align:center}
+  .diagram svg{width:100%;max-width:720px;height:auto}
+  .cap{color:var(--mut);font-size:12.5px;margin-top:10px;font-style:italic}
+  .pb{padding:3px 9px;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:600}
+  .pb.r{background:rgba(255,107,107,.18);color:#ff9b9b}
+  .pb.g{background:rgba(123,237,159,.16);color:#9bedb6}
+  .pb.b{background:rgba(116,185,255,.16);color:#a9d2ff}
+  .pb.ms{background:rgba(192,132,252,.18);color:#d6b3ff}
+  .note{font-size:12.5px;color:var(--mut);margin-top:6px}
+  .roadmap{display:flex;flex-direction:column;gap:0;margin:20px 0}
+  .step{display:grid;grid-template-columns:130px 1fr;gap:16px;padding:14px 0;border-bottom:1px dashed var(--line)}
+  .step .yr{font-family:var(--mono);color:var(--acc2);font-weight:700;font-size:14px}
+  .step .b{color:#d4d9e8}
+  .ref{font-size:12.5px;color:var(--mut);line-height:1.85}
+  .ref a{color:var(--acc);text-decoration:none}
+  .ref a:hover{text-decoration:underline}
+  footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--line);color:var(--mut);font-size:13px}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent);margin:40px 0}
+  .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-family:var(--mono);margin:2px}
+  .chip.hot{background:rgba(79,209,255,.14);color:#9fe3ff;border:1px solid rgba(79,209,255,.3)}
+  .chip.open{background:rgba(255,209,102,.13);color:#ffe0a3;border:1px solid rgba(255,209,102,.3)}
+  .chip.fut{background:rgba(192,132,252,.14);color:#d6b3ff;border:1px solid rgba(192,132,252,.3)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="inner">
+    <div class="kick">Multispectral &amp; Local AWB · Technical Deep-Dive</div>
+    <h1>Local AWB 研究热点与待解难题</h1>
+    <p class="sub">从成像物理、混合光源模型，到逐像素学习、光源分解、傅里叶加速、多光谱融合与生成式方法——系统梳理局部自动白平衡的研究思路、现有解法、核心瓶颈与未来方向。原理级细节，附公式、结构与量化结果。</p>
+    <div class="meta">
+      <span class="pill">配套文档 · <b>多光谱 AWB 研究</b>系列之三</span>
+      <span class="pill">覆盖 <b>2014–2026</b></span>
+      <span class="pill">含 <b>CIC33 / AID / IFFCC / LSMI / MIMI</b></span>
+      <span class="pill">更新 <b>2026-07-11</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="inner">
+  <a href="#s0">0 · 概念</a>
+  <a href="#s1">1 · 物理基础</a>
+  <a href="#s2">2 · 解决思路总览</a>
+  <a href="#s3">3 · 现有解法</a>
+  <a href="#s4">4 · 多光谱+Local</a>
+  <a href="#s5">5 · 待解难题</a>
+  <a href="#s6">6 · 未来方向</a>
+  <a href="#s7">7 · 总结</a>
+  <a href="#s8">8 · 参考文献</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- ============ 0 ============ -->
+<section id="s0">
+  <h2><span class="num">0</span>什么是 Local AWB：从"全局"到"局部"的范式跃迁</h2>
+  <p class="lead">自动白平衡（AWB）的传统假设是<strong>整幅图像只受单一、均匀的全局光源</strong>支配。Local AWB（局部自动白平衡）打破这一假设：<strong>同一场景中不同空间位置可能受不同光源/不同混合比例照射</strong>，因此必须为每个像素（或每个局部区域）估计并施加独立的白点增益。</p>
+
+  <div class="callout key">
+    <div class="h">◈ 核心定义</div>
+    <p style="margin:0"><strong>Local AWB = 在图像空间上变化的白点估计。</strong>它等价于"多光源（multi-illuminant）场景下的逐像素颜色恒常性"。输出的不是单一的 3 维白点向量，而是一张<strong>逐像素光照图（illumination map）</strong>——图像上每个位置都对应一个独立的白点（光照色度）。</p>
+  </div>
+
+  <div class="grid c2">
+    <div class="card">
+      <h4>Global AWB</h4>
+      <span class="tag">单光源假设</span><span class="tag">输出 1 个白点</span>
+      <p>对整幅图估一个对角增益矩阵 <code>D=diag(d_R,d_G,d_B)</code>，全图共享。在 mixed-illumination 场景下，要么夸大某光源色差，要么只部分去偏——"此消彼长"。</p>
+    </div>
+    <div class="card">
+      <h4>Local AWB</h4>
+      <span class="tag">多光源/空间变化</span><span class="tag">输出光照图</span>
+      <p>每个像素/局部区域独立白点 <code>D(x,y)</code>。能正确处理"窗边暖光 + 室内冷光"这类真实场景，但引入<strong>局部歧义（regional ambiguity）</strong>——区域颜色信息少时，比全局更不确定。</p>
+    </div>
+  </div>
+
+  <p>为什么这件事"难且重要"？因为 <strong>真实世界绝大多数场景都是多光源的</strong>：室内的人造光 + 窗外的日光；户外的直射阳光 + 阴影；舞台的多色灯光。商用相机沿用单光源假设，正是大量"偏色照片"的根源。Local AWB 是<strong>多光谱 AWB</strong> 与 <strong>计算颜色恒常性</strong> 两条主线在"空间维"上的交汇点——这也是本系列前文（华为路线、概念辨析）所铺垫的技术终点。</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#4fd1ff"/></marker>
+      </defs>
+      <rect x="8" y="40" width="150" height="130" rx="10" fill="#151823" stroke="#2a2f42"/>
+      <text x="83" y="70" fill="#ffb74d" font-size="13" font-family="mono" text-anchor="middle">Global AWB</text>
+      <text x="83" y="95" fill="#9aa3bd" font-size="11" text-anchor="middle">1 个白点</text>
+      <text x="83" y="115" fill="#9aa3bd" font-size="11" text-anchor="middle">D=const</text>
+      <text x="83" y="140" fill="#7bed9f" font-size="11" text-anchor="middle">单光源假设</text>
+
+      <line x1="158" y1="105" x2="262" y2="105" stroke="#4fd1ff" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="210" y="92" fill="#9aa3bd" font-size="11" text-anchor="middle">场景=</text>
+      <text x="210" y="124" fill="#9aa3bd" font-size="11" text-anchor="middle">多光源</text>
+
+      <rect x="270" y="40" width="170" height="130" rx="10" fill="#1b1f2e" stroke="#4fd1ff"/>
+      <text x="355" y="68" fill="#4fd1ff" font-size="13" font-family="mono" text-anchor="middle">Local AWB</text>
+      <text x="355" y="90" fill="#9aa3bd" font-size="11" text-anchor="middle">光照图 ℓ(x,y)</text>
+      <text x="355" y="110" fill="#9aa3bd" font-size="11" text-anchor="middle">逐像素 D(x,y)</text>
+      <text x="355" y="135" fill="#c084fc" font-size="11" text-anchor="middle">歧义↑ 信息↓</text>
+
+      <line x1="440" y1="105" x2="544" y2="105" stroke="#c084fc" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="492" y="92" fill="#9aa3bd" font-size="11" text-anchor="middle">叠加</text>
+      <text x="492" y="124" fill="#9aa3bd" font-size="11" text-anchor="middle">多光谱</text>
+
+      <rect x="552" y="40" width="160" height="130" rx="10" fill="#241a2e" stroke="#c084fc"/>
+      <text x="632" y="68" fill="#c084fc" font-size="13" font-family="mono" text-anchor="middle">MS+Local</text>
+      <text x="632" y="90" fill="#9aa3bd" font-size="11" text-anchor="middle">N 维白点</text>
+      <text x="632" y="110" fill="#9aa3bd" font-size="11" text-anchor="middle">歧义↓ 信息↑</text>
+      <text x="632" y="135" fill="#ffd166" font-size="11" text-anchor="middle">当前前沿</text>
+    </svg>
+    <div class="cap">图 0-1 · 从全局到局部、再到"多光谱+局部"的演进逻辑</div>
+  </div>
+</section>
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>研究思路与物理基础（原理细节）</h2>
+  <p>任何 Local AWB 方法都建立在同一个成像模型之上。理解这个模型，才能理解所有方法的"能"与"不能"。</p>
+
+  <h3><span class="t">1.1</span>局部对角模型与光照图</h3>
+  <p>在 Lambertian 反射假设下，位置 <code>x=(x,y)</code> 处、第 <code>k∈{R,G,B}</code> 通道的观测值为：</p>
+  <div class="formula"><span class="c">// 单光源局部成像模型</span>
+f_k(x) = m(x) · e_k · r_k(x)
+
+  m(x) : 几何明度（shading，与光源颜色无关）
+  e_k   : 该位置光源在第 k 通道的响应  <span class="c">← 要去除的</span>
+  r_k(x): 物体表面反射率（含 ColorChecker/光谱） <span class="c">← 要保留的</span></div>
+  <p>白平衡的目标就是把 <code>e_k</code> "约掉"。对<strong>全局</strong>情形，施加对角矩阵 <code>D=diag(d_R,d_G,d_B)</code>，其中 <code>d_k = e_k^c / e_k</code>（<code>e^c</code> 为标准光源）。对<strong>局部</strong>情形，对角矩阵随位置变化——PWCC（Pixel-wise Color Constancy, Multi-Illuminant, 2024）给出的双光源逐像素增益矩阵为：</p>
+  <div class="formula"><span class="c">// 局部（双光源）von Kries 增益矩阵</span>
+I^ab(x,y) = [ e1(x,y)   0        0
+              0        e2(x,y)   0
+              0        0        e3(x,y) ]
+
+  I^ab(x,y) : 逐像素白平衡增益矩阵，即本文的"光照图"
+  e1,e2,e3 : 每个像素、每个通道独立的光照响应</div>
+  <div class="callout key">
+    <div class="h">◈ 关键洞察</div>
+    <p style="margin:0">光照图本质上是一张<strong>逐像素的对角增益场</strong>。Local AWB 的全部工作，就是<strong>从一张 RGB 图（或 MS 图）反演出这张场</strong>。反演是 ill-posed 的：从 <code>f_k</code> 无法唯一解出 <code>e_k</code> 与 <code>r_k(x)</code>（二者耦合），必须靠先验或数据驱动。</p>
+  </div>
+
+  <h3><span class="t">1.2</span>混合光源模型：每个像素是"多个光源的线性混合"</h3>
+  <p>真实多光源场景下，一个像素往往同时被多个光源照射。最常见的简化是<strong>双主光源线性混合模型</strong>（Yue &amp; Wei, Optica 2024；也用于 CIC33 的物理后处理）：</p>
+  <div class="formula"><span class="c">// 双主光源混合（逐像素）</span>
+e(x) ≈ w1(x)·e_a + w2(x)·e_b
+  w1(x)+w2(x) = 1,  w1,w2 ≥ 0
+
+  e_a, e_b : 两个主光源（场景级，全局恒定）
+  w1,w2(x) : 每个像素的混合权重图（空间变化） <span class="c">← 真正的未知量</span></div>
+  <p>这意味着 Local AWB 可以拆成两个子问题：① 识别<strong>场景级</strong>存在哪几个光源（它们的色度 <code>e_a, e_b</code>）；② 估计<strong>逐像素</strong>的混合权重 <code>w1(x), w2(x)</code>。AID（CVPR 2024）正是沿这条思路设计的（见 §3.3）。</p>
+  <p>更一般地，<strong>主-从光源模型（master–subordinate illumination model）</strong>（Xue et al., IEEE TCI 2025）把混合光照推广为一种"相关色温再照明"的扩展，用于建模复杂多色温场景。它把物理图像形成显式写成：</p>
+  <div class="formula"><span class="c">// 物理图像形成（混合光照，Xue 2025）</span>
+f = ∫ ρ(λ) · SPD_mix(λ) · S(λ) dλ
+  SPD_mix(λ) = 主光源 SPD + 从光源 SPD 的加权和
+  ρ(λ)       : 窄带反射率； S(λ) : 相机光谱灵敏度</div>
+  <p>该模型的价值在于：<strong>显式建模"窄带反射率 ↔ 光源 SPD"的相关性</strong>，从而能从 RGB（甚至多光谱）恢复场景光的<strong>完整 SPD</strong>，再把 RGB 与估计光谱融合，精确预测光照色度——这是把"物理先验"重新引入学习型 Local AWB 的代表。</p>
+
+  <h3><span class="t">1.3</span>为什么 RGB 做 Local AWB 尤其受限</h3>
+  <p>把全局问题"局部化"后，难度不是线性增长而是阶跃式上升，原因有三：</p>
+  <ul>
+    <li><strong>局部颜色信息更少 → 歧义更大。</strong>全局算法可用全图统计（灰世界/白块），但一个局部 patch 的颜色可能极单调（如一面纯色墙），光源估计退化成"猜"。CIC33 明确指出："local estimation ... confronted with even more ambiguity due to its regional nature."</li>
+    <li><strong>同色异谱（metamerism）在局部被放大。</strong>3 通道 RGB 无法区分"真实白点"与"恰好在该区域投影相同"的其他光源。像素级越细，这个歧义越致命。</li>
+    <li><strong>位深（bit-depth）敏感。</strong>ISP 偏好低位深以省算力，但低位深会损失细节、放大噪声，使逐像素算法精度暴跌（详见 §5.3）。</li>
+  </ul>
+  <p>这三条恰好对应多光谱的切入点：<strong>多光谱用 N 维（如 15 维）替代 3 维，从根本上压低歧义</strong>——这也是 §4 与 CIC33 的核心论点。</p>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>现有解决思路总览：五条主线</h2>
+  <p>把 2014–2026 年的工作按"思路"而非"时间"归类，可归纳出五条主线。它们并非互斥，前沿方法往往是杂交体。</p>
+  <div class="roadmap">
+    <div class="step"><div class="yr">主线 A</div><div class="b"><strong>局部统计 / 分区法</strong>——把图切块，每块当单光源独立估计后融合（patch-based）。代表：Gijsenij 分割+聚类、Beigpour CRF、Bianco patch-CNN、CIC 2008 HDR 局部加权法。优点是可复用全局 AWB；难点是 patch 边界 + 小区域不准 + 融合。</div></div>
+    <div class="step"><div class="yr">主线 B</div><div class="b"><strong>逐像素学习（Pixel-wise DNN）</strong>——用 U-Net/Transformer 直接回归光照图（image-to-image）。代表：LSMI-U、AngularGAN、TransCC、SMM、PWCC、Yue&Wei(Optica)。理论最优，但算力大、低位深敏感、需密集真值。</div></div>
+    <div class="step"><div class="yr">主线 C</div><div class="b"><strong>光源分解（Illumination Decomposition）</strong>——先分解成"几个场景级光源 + 逐像素权重"，再融合。代表：AID（slot attention）、Multi-scale 三分支融合。可解释、能给光源数/色度、支持光照编辑。</div></div>
+    <div class="step"><div class="yr">主线 D</div><div class="b"><strong>高效 / 解析加速</strong>——把全局高效算法（FFCC）扩展为局部平滑光照图。代表：IFFCC（CVPR 2025）。参数量与速度碾压 DNN，精度持平。</div></div>
+    <div class="step"><div class="yr">主线 E</div><div class="b"><strong>多光谱 / 融合 / 生成式</strong>——用多光谱降歧义（CIC33/MIMI、华为 IJCV2024/WACV2025）、用 sRGB 多预设融合（Mixed/Style WB、Revisiting Fusion ICCV2025）、用扩散模型跨相机（GCC）。最活跃的前沿。</div></div>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg">
+      <defs></defs>
+      <rect x="20" y="20" width="160" height="60" rx="9" fill="#151823" stroke="#2a2f42"/><text x="100" y="46" fill="#ffb74d" font-size="12" font-family="mono" text-anchor="middle">A 局部统计</text><text x="100" y="64" fill="#9aa3bd" font-size="10" text-anchor="middle">patch / 加权</text>
+      <rect x="20" y="100" width="160" height="60" rx="9" fill="#151823" stroke="#2a2f42"/><text x="100" y="126" fill="#ffb74d" font-size="12" font-family="mono" text-anchor="middle">B 逐像素DNN</text><text x="100" y="144" fill="#9aa3bd" font-size="10" text-anchor="middle">U-Net/Trans</text>
+      <rect x="20" y="180" width="160" height="50" rx="9" fill="#151823" stroke="#2a2f42"/><text x="100" y="204" fill="#ffb74d" font-size="12" font-family="mono" text-anchor="middle">C 光源分解</text><text x="100" y="222" fill="#9aa3bd" font-size="10" text-anchor="middle">AID等</text>
+      <rect x="280" y="100" width="160" height="60" rx="9" fill="#1b1f2e" stroke="#4fd1ff"/><text x="360" y="126" fill="#4fd1ff" font-size="12" font-family="mono" text-anchor="middle">D 高效加速</text><text x="360" y="144" fill="#9aa3bd" font-size="10" text-anchor="middle">IFFCC</text>
+      <rect x="540" y="20" width="160" height="60" rx="9" fill="#241a2e" stroke="#c084fc"/><text x="620" y="46" fill="#c084fc" font-size="12" font-family="mono" text-anchor="middle">E 多光谱</text><text x="620" y="64" fill="#9aa3bd" font-size="10" text-anchor="middle">CIC33/MIMI</text>
+      <rect x="540" y="100" width="160" height="60" rx="9" fill="#241a2e" stroke="#c084fc"/><text x="620" y="126" fill="#c084fc" font-size="12" font-family="mono" text-anchor="middle">E 融合/生成</text><text x="620" y="144" fill="#9aa3bd" font-size="10" text-anchor="middle">Fusion/GCC</text>
+      <rect x="540" y="180" width="160" height="50" rx="9" fill="#241a2e" stroke="#c084fc"/><text x="620" y="204" fill="#c084fc" font-size="12" font-family="mono" text-anchor="middle">物理+学习</text><text x="620" y="222" fill="#9aa3bd" font-size="10" text-anchor="middle">Xue 2025</text>
+      <line x1="180" y1="50" x2="270" y2="130" stroke="#2a2f42" stroke-width="1.5"/>
+      <line x1="180" y1="130" x2="270" y2="130" stroke="#4fd1ff" stroke-width="1.8"/>
+      <line x1="180" y1="205" x2="270" y2="130" stroke="#2a2f42" stroke-width="1.5"/>
+      <line x1="440" y1="130" x2="525" y2="80" stroke="#c084fc" stroke-width="1.8"/>
+      <line x1="440" y1="130" x2="525" y2="130" stroke="#c084fc" stroke-width="1.8"/>
+      <line x1="440" y1="130" x2="525" y2="205" stroke="#c084fc" stroke-width="1.8"/>
+      <text x="360" y="172" fill="#4fd1ff" font-size="11" text-anchor="middle" font-family="mono">加速 + 平滑</text>
+      <text x="490" y="160" fill="#c084fc" font-size="11" text-anchor="middle" font-family="mono">降歧义/跨域</text>
+    </svg>
+    <div class="cap">图 2-1 · 五条主线与融合方向（A–D 收敛于 E）</div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>现有解决方案：方法级解读</h2>
+
+  <h3><span class="t">3.1</span>局部统计 / 分区法（主线 A）</h3>
+  <p><strong>① 早期分区融合（CIC 2008, HDR 场景）。</strong>针对"多光源 HDR"提出局部 AWB：对每个像素，从其邻域的颜色信息估计光照，权重由<strong>空间距离、亮度差、色度</strong>三者加权。这是最早显式"逐像素、局部加权"的思路，比深度学习早了近十年，但依赖手工权重，鲁棒性差。</p>
+  <p><strong>② Gijsenij 分割+聚类（2011 survey）。</strong>把图分成小 patch，每块做单光源估计，再用聚类得到光照分布；Beigpour 用 CRF 优化 patch 级初值；Bianco 用 CNN 做 patch-wise 估计。它们的问题是<strong>patch 边界不连续、忽略空间依赖、无法保证光照平滑过渡</strong>。</p>
+  <p><strong>③ 灰像素 / 灰度法（Gray Pixel, Pixel Greyness）。</strong>Gray Pixel 算法找图中的"灰像素"作锚点，再滤波估计每像素光照；Thai et al.(2016) 用 YCbCr 的"灰度"作权重做加权平均。依赖"能否准确找到灰像素"，在单调色场景失效。</p>
+
+  <h3><span class="t">3.2</span>逐像素学习（主线 B）</h3>
+  <div class="grid c2">
+    <div class="card">
+      <h4>LSMI-U（U-Net）</h4>
+      <span class="tag">ICCV 2021</span><span class="tag">数据集+基线</span>
+      <p>Kim et al. 提出的 U-Net，输入 256×256 RGB，输出逐像素光照图。是后续几乎所有方法的基线。缺点：56M 参数、对 LSMI 过拟合、低位深敏感。</p>
+      <p class="pub">LSMI dataset, ICCV 2021</p>
+    </div>
+    <div class="card">
+      <h4>AngularGAN</h4>
+      <span class="tag">GAN</span><span class="tag">里程碑</span>
+      <p>首个用 GAN 处理 non-uniform / multi-illuminant 的白平衡，引入 angular loss。问题是<strong>常引入空间伪影</strong>，图像不自然。</p>
+      <p class="pub">multi-illuminant GAN WB</p>
+    </div>
+    <div class="card">
+      <h4>PWCC（TV + 双边滤波）</h4>
+      <span class="tag">2024</span><span class="tag">平滑</span>
+      <p>Pixel-wise Color Constancy via Smoothness：U-Net + Total Variation loss 强制光照图平滑，再用<strong>双边滤波</strong>保边去噪。针对"光照本应随空间平滑变化"这一先验。还用 label smoothing 缓解 LSMI 真值噪声。</p>
+      <p class="pub">arXiv:2402.02922</p>
+    </div>
+    <div class="card">
+      <h4>TransCC / SMM</h4>
+      <span class="tag">Transformer</span><span class="tag">自监督</span>
+      <p>TransCC 用 transformer 多任务框架；SMM 用自监督 + transformer 编码器，刷新 LSMI 基准。说明<strong>全局依赖建模</strong>对空间变化光照很重要。</p>
+      <p class="pub">LSMI benchmark SOTA</p>
+    </div>
+  </div>
+
+  <div class="callout key">
+    <div class="h">◈ 重点：低位深鲁棒性（Yue &amp; Wei, Optica 2024）</div>
+    <p style="margin:0">这是把"Local AWB 落地到 ISP"最关键的一篇工程论文。核心发现：<strong>同一逐像素算法在不同位深上精度差异可达 30%（低位深更差）</strong>，原因是低位深损失细节 + 噪声增大——这一点过去从未被指出。ISP 偏偏偏好低位深（省算力），形成矛盾。</p>
+    <p style="margin:8px 0 0">解法 = <strong>L1 loss（比 L2 更抗噪/异常值）+ 物理约束后处理</strong>。后处理分四步：① 把光照图转到 uv 空间，用 K-means 找<strong>两个主光源</strong>；② 离散化两主光源连线、以容差圆识别噪声像素；③ 把噪声像素的光照用<strong>象限内局部平均</strong>替换（基于"光传播近线性"）；④ 据两主光源夹角判断单/多光源。最终比 SOTA DNN 高约 40% 精度。</p>
+  </div>
+
+  <h3><span class="t">3.3</span>光源分解（主线 C）—— AID 详解</h3>
+  <p><strong>AID：Attentive Illumination Decomposition Model（CVPR 2024, 延世大学）</strong>是当前 Local AWB 的 SOTA 代表，也是与多光谱最易结合的方向。它不像 B 类方法直接回归光照图，而是先<strong>把混合光照"分解"成若干场景级光源</strong>。</p>
+  <div class="formula"><span class="c">// AID 成像模型（G 通道归一化为 1，只需 R/B 色度）</span>
+f(x) = Σ_k  α_k(x) · ℓ_k · ρ(x)
+  α_k(x) : 第 k 个光源在像素 x 的权重图（softmax 和为 1）
+  ℓ_k     : 第 k 个光源的色度（chromaticity，场景级）
+  → 混合光照图 ℓ_mixed(x) = Σ_k α_k(x)·ℓ_k   <span class="c">即输出</span></div>
+  <p>实现上，AID 用 <strong>Slot Attention</strong>（K=7 个 slot）让每个 slot 负责表示一个光源：U-Net 编码器提取与图同分辨率的特征 → 迭代校准（T=3 次）slot → 每个 slot 输出一组 <code>(α_k, ℓ_k)</code> → 融合成 ℓ_mixed。关键在于<strong>质心匹配损失（centroid-matching loss）</strong>：</p>
+  <div class="formula"><span class="c">// 质心匹配损失：让正确 slot 激活、其余关闭</span>
+L_centroid = Σ_i ( |ℓ_i − ℓ̂_{σ_m(i)}| + |α_i − α̂_{σ_m(i)}| )
+  σ_m : 预测 slot 与 GT 光源的匹配
+  <span class="c">无此损失 → 所有 slot 都激活、互相干扰；有此损失 → 正确 slot 激活、其余关闭</span></div>
+  <p>结果（LSMI 数据集，MAE 角度误差，越低越好）：</p>
+  <table>
+    <tr><th>方法</th><th>设置</th><th>mean</th><th>median</th></tr>
+    <tr><td>LSMI-U</td><td>device-specific</td><td>2.31</td><td>1.89</td></tr>
+    <tr><td>AID</td><td>all-in-one (跨相机)</td><td>2.04</td><td>1.73</td></tr>
+    <tr><td class="good">AID + MDL</td><td>多域学习（按相机初始化 slot）</td><td class="good">1.93</td><td class="good">1.60</td></tr>
+    <tr><td>AID</td><td>单光源场景 (Galaxy)</td><td class="good">1.19</td><td>2.03</td></tr>
+  </table>
+  <p>AID 的额外价值：<strong>能输出"场景有几个光源、各自色度"</strong>，从而支持"光照编辑"（调某个光源的颜色）——这是 B 类方法做不到的。这使它成为"多光谱 + 局部分解"最有前景的融合基座（见 §6.2）。</p>
+
+  <div class="card" style="margin-top:18px">
+    <h4>Multi-scale Illuminant Estimation and Fusion（Luo et al., 2025）</h4>
+    <span class="tag">尺度分解</span><span class="tag">三分支U-Net</span>
+    <p>动机：光照分布在<strong>小尺度更均匀、大尺度更多样</strong>，但此前方法忽略尺度依赖。提出把光照图表示为<strong>多粒度分量的线性组合</strong>：三个 U-Net 分支分别从多尺度图估光照图，再用<strong>注意力融合模块</strong>生成逐像素权重做线性组合。在 LSMI 上达到 SOTA。</p>
+  </div>
+
+  <h3><span class="t">3.4</span>高效加速（主线 D）—— IFFCC 详解</h3>
+  <p><strong>IFFCC：Integral Fast Fourier Color Constancy（CVPR 2025, 中科大 &amp; DJI）</strong>解决的是"像素级 DNN 太重、无法实时视频"的痛点。它把为<strong>单光源</strong>设计的 FFCC（Fast Fourier Color Constancy）扩展为<strong>多光源局部</strong>版本。</p>
+  <ul>
+    <li><strong>积分 UV 直方图（Integral UV Histogram）</strong>：把"任意局部区域的 UV 直方图"用积分图数据结构预计算，提取时变成 <strong>O(1) 查表</strong>——这是核心加速点（传统要每个 patch 重复算直方图）。</li>
+    <li><strong>傅里叶卷积并行化</strong>：对每个区域做 FFCC 估计后，用傅里叶卷积平滑融合成空间连续的光照图。</li>
+    <li><strong>结果</strong>：参数量仅 <strong>1.2 万</strong>（比 DNN 少 400×+），256×256 图在 CPU 上 <strong>0.03 秒</strong>（快 20–100×），精度与像素级神经网络持平或更好。</li>
+  </ul>
+  <p>思路分类上 IFFCC 属于"patch-based + 平滑融合"，但用解析结构替掉了神经网络，是<strong>工程落地的关键路径</strong>。</p>
+
+  <h3><span class="t">3.5</span>融合式方法（主线 E-融合）</h3>
+  <p><strong>思路</strong>：不预测光照图，而是把输入图用若干<strong>预定义 WB 预设</strong>处理成多个 sRGB 版本，再用网络融合。代表：Mixed WB、Style WB。</p>
+  <div class="grid c2">
+    <div class="card">
+      <h4>Arora 硕士论文 (2024)</h4>
+      <span class="tag">融合5个预设</span>
+      <p>用注意力架构融合 5 个 WB 设置，比前作提升达 25%；并渲染了 16,000 张 sRGB 训练集。</p>
+    </div>
+    <div class="card">
+      <h4>Revisiting Image Fusion (ICCV 2025)</h4>
+      <span class="tag">Transformer融合</span><span class="tag">+100%</span>
+      <p>Serrano-Lozano et al. 指出线性融合非最优，提出高效 transformer 捕捉跨 WB 预设的空间依赖，自建 16k sRGB（5 预设）数据集，比已有技术提升最高 <strong>100%</strong>。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>多光谱 + Local AWB（最相关的前沿）</h2>
+  <p>这是用户研究的核心，也是华为路线与本系列 CIC33 论文的交汇。多光谱通过<strong>升维</strong>直接攻击 Local AWB 的根本困难——局部歧义。</p>
+
+  <h3><span class="t">4.1</span>CIC33：用多光谱提升 Local AWB（Spectricity, CIC 2025）</h3>
+  <p>这正是用户本地的论文。它首次把<strong>多光谱</strong>用于<strong>局部</strong>白点检测（此前多光谱仅用于全局白点）。</p>
+
+  <h4>数据：MIMI 数据集</h4>
+  <p>Spectricity 用自家的 <strong>S1-M VIS 快照式多光谱模组</strong>（15 通道，SVGA 分辨率，见图 1 光谱响应）采集。核心贡献是 <strong>MIMI（Multi-Illuminant Multi-spectral Imaging）数据集</strong>：</p>
+  <ul>
+    <li><strong>774 个场景</strong>，每个场景用 <strong>RGB（Samsung Tab S9）</strong> 与 <strong>MSI（S1-M）</strong> 双模同步采集，含/不含白卡成对图像。</li>
+    <li>真值用<strong>白卡（white charts）</strong>测得<strong>稀疏局部白点</strong>（而非密集光照图）；附 Macbeth 色卡算 ΔE2000。</li>
+    <li>关键特性：MSI 可<strong>高精度转换成任意 RGB 相机的光谱响应</strong>（图 6），因此该数据集能生成"任意 RGB 相机的白点真值"——通用性极强。</li>
+  </ul>
+
+  <h4>训练：模拟多光谱测量（避免过拟合）</h4>
+  <p>由于真实 MS 数据稀缺，<strong>网络在大规模模拟测量上训练</strong>：假设完美 Lambertian，用 <strong>32768 条光源 SPD</strong>（荧光/白炽/卤素/LED/日光及组合）+ <strong>6814 条反射率光谱</strong>投影到相机光谱灵敏度；单/混合光源各半；共生成 <strong>524288 组</strong>测量集，每 epoch 重排。这一设计让网络不依赖真实数据的场景分布。</p>
+
+  <h4>网络：Set Transformer（仅 2M 参数）</h4>
+  <p>为适配移动端，用<strong>轻量 transformer</strong>：编码器（逐测量处理）→ 聚合块（提取光照信息）→ 散列块（把光照信息关联回每个输入）→ 解码器（输出白点）。聚合/散列用 <strong>Set Transformer</strong> 架构。该方法<strong>不限多光谱</strong>——同样可训在 RGB 上（RGB→RGB 变体）。</p>
+
+  <h4>关键结果（定量）</h4>
+  <table>
+    <tr><th>实验</th><th>网络</th><th>训练</th><th>Mean°</th><th>Median°</th><th>ΔE2000</th></tr>
+    <tr><td rowspan="3">表2 · Nikon LSMI 测试集<br><span class="note">（密集白点图，同域）</span></td><td>LSMI-U</td><td>LSMI</td><td>1.9</td><td>1.2</td><td>–</td></tr>
+    <tr><td>SPTY(本文)</td><td>LSMI</td><td>2.0</td><td>1.6</td><td>–</td></tr>
+    <tr><td>SPTY</td><td>Sim(模拟)</td><td>2.5</td><td>1.8</td><td>–</td></tr>
+    <tr><td rowspan="3">表3 · MIMI→Nikon<br><span class="note">（稀疏真值，跨域）</span></td><td>LSMI-U</td><td>LSMI</td><td class="bad">4.4</td><td class="bad">3.7</td><td class="bad">6.3</td></tr>
+    <tr><td>SPTY</td><td>LSMI</td><td>3.8</td><td>2.7</td><td>6.0</td></tr>
+    <tr><td class="good">SPTY</td><td class="good">Sim</td><td class="good">3.1</td><td class="good">2.0</td><td class="good">5.1</td></tr>
+    <tr><td rowspan="3">表4 · MIMI 验证集<br><span class="note">（MSI vs RGB 直接对比）</span></td><td>RGB→RGB</td><td>Sim</td><td>2.8</td><td>1.9</td><td>4.8</td></tr>
+    <tr><td class="good">MSI→MSI</td><td>Sim</td><td class="good">2.0</td><td class="good">1.5</td><td class="good">3.6</td></tr>
+    <tr><td>MSI→MSI→RGB</td><td>Sim</td><td>2.3</td><td>1.8</td><td>n/a</td></tr>
+  </table>
+  <div class="callout key">
+    <div class="h">◈ CIC33 的三个核心结论</div>
+    <ol style="margin:6px 0 0">
+      <li><strong>多光谱 > RGB</strong>：MSI→MSI 相比 RGB→RGB，白点角度误差 ↓约 29%（2.8→2.0），ΔE2000 ↓约 25%（4.8→3.6）。"用多光谱测量去光源，比 RGB 准得多"。</li>
+      <li><strong>模拟训练泛化性远好于中等规模真实集</strong>：LSMI-U 在 MIMI 跨域测试暴跌（4.4°），证明 LSMI 过拟合；纯模拟训练的 SPTY 跨域仍稳（3.1°）。</li>
+      <li><strong>对 LSMI 成像模型的批判</strong>：LSMI 用 <code>m = SΛ_r λ ≈ SΛ_r S⁺S λ = D_r l</code>，该近似仅在"SPD 完全落在 S 的列空间 + D_r 为对角"时成立——对 RGB 相机几乎不成立，<strong>对多光谱相机则准确得多</strong>。这正是多光谱降歧义的物理根源。</li>
+    </ol>
+  </div>
+
+  <h3><span class="t">4.2</span>华为：单像素光谱恒常性 + 多光谱颜色复制</h3>
+  <p>前文（华为路线图文档）详述的两篇，在本语境下是 Local AWB 的"上游能力"：</p>
+  <ul>
+    <li><strong>IJCV 2024（Single Pixel Spectral Color Constancy）</strong>：从单像素 MS 数据恢复光源 SPD（10–14 通道即可）。这给 Local AWB 提供了<strong>"每像素都能估准光源"</strong>的物理基础——把全局高维估计下沉到像素级。</li>
+    <li><strong>WACV 2025（Multi-Spectral Image Color Reproduction）</strong>：正则化色彩管线 + <strong>光照自适应 CCM</strong>（illuminance-adaptive matrix）。其"按场景光照动态调 CCM"本质上就是<strong>局部/条件化颜色校正</strong>，是多光谱 Local AWB 在 CCM 环节的体现。</li>
+  </ul>
+
+  <h3><span class="t">4.3</span>物理 + 学习：主-从光源模型（Xue et al., IEEE TCI 2025）</h3>
+  <p>北航工作把<strong>物理渲染 + 神经网络</strong>结合做多光源颜色恒常性：显式建模窄带反射率与光源 SPD 的相关性，从 RGB + 光谱恢复完整 SPD，再融 RGB 预测色度。它把"物理可解释"重新拉回学习型框架，是本系列 §6 未来方向的重要参照。</p>
+
+  <h3><span class="t">4.4</span>生成式 / 跨相机：GCC（CVPR 2025, MediaTek+NYCU）</h3>
+  <p>虽非直接 Local AWB，但解决了 Local AWB 的孪生难题——<strong>跨相机泛化</strong>。GCC 用预训练扩散模型<strong>inpainting 生成一张符合当前场景光照的色卡</strong>，从色卡灰块提取光照。单步确定性推理 + Laplacian 分解保结构 + mask 数据增强。结果：跨相机 worst-25% 误差 5.15°/4.32°，无需传感器专属训练。<strong>思路可直接迁移到"逐像素生成局部色卡/光照图"</strong>。</p>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>待解难题（深度剖析）</h2>
+  <p>Local AWB 远未解决。以下 8 个难题按"从物理到系统"排序，每个都附当前瓶颈与已有尝试。</p>
+
+  <div class="grid c2">
+    <div class="card"><h4 style="color:var(--bad)">① 真值歧义："正确的局部白点"是什么？</h4>
+      <p>混合模型只在"双主光源"下成立，真实可能是 3+ 光源或连续分布；而且<strong>物理白点 ≠ 人眼偏好白点</strong>（感知 vs 物理之争）。目前没有"in-the-wild 密集真值"的获取协议——CIC33 只能取稀疏白卡真值，并把"建立密集真值协议"列为未来工作。</p>
+      <p class="pub">瓶颈：真值获取本身 open problem</p>
+    </div>
+    <div class="card"><h4 style="color:var(--bad)">② 互反射与高光（非 Lambertian）</h4>
+      <p>成像模型假设 Lambertian，但<strong>镜面高光、次表面散射、互反射（colored illumination from inter-reflection）</strong>都违反它。AID 的"彩色光照"仍简化；真正的彩色光照需 intrinsic decomposition 分离。Careaga(2024)、Sha(2025) 的彩色本征分解是方向，但与 AWB 尚未打通。</p>
+      <p class="pub">瓶颈：分解不准确 → 白点错</p>
+    </div>
+    <div class="card"><h4 style="color:var(--bad)">③ 位深与信噪比</h4>
+      <p>Yue&Wei 证明低位深使逐像素精度跌 30%。ISP 要低位深省算力，形成死结。L1+物理后处理缓解但治标。当 Local AWB 下沉到手机主 ISP，<strong>低位深 + 小区域</strong>双重噪声是硬约束。</p>
+      <p class="pub">瓶颈：精度↔算力的 trade-off</p>
+    </div>
+    <div class="card"><h4 style="color:var(--bad)">④ 跨相机 / 跨域泛化</h4>
+      <p>不同传感器 SSF 不同 → 同一场景 RAW 不同 → domain gap。LSMI 过拟合（CIC33 表3）；DMCC 双映射、GCC 扩散跨相机是解法，但 Local AWB 的跨域仍弱。多光谱因"光谱指纹"对 SSF 不敏感，是天然优势（CIC33 表4）。</p>
+      <p class="pub">瓶颈：传感器专属数据需求</p>
+    </div>
+    <div class="card"><h4 style="color:var(--bad)">⑤ 数据集与真值瓶颈</h4>
+      <p><strong>LSMI</strong>：需控制"除一个外所有光源"，真实场景（如窗外日光+阴影）做不到（见图3）；成像模型近似；训练/测试划分差→过拟合。<strong>MIMI</strong>：仅 774 场景、稀疏真值、无密集图。两者都<strong>无法支撑 in-the-wild 密集 Local AWB 训练</strong>。</p>
+      <p class="pub">瓶颈：数据规模 + 真值质量</p>
+    </div>
+    <div class="card"><h4 style="color:var(--bad)">⑥ 光源数未知 &amp; 可解释性</h4>
+      <p>场景有几个光源是未知的。AID 用质心匹配损失让 slot 自适应激活/关闭，是优雅解法，但 slot 数 K 仍须预设。能否<strong>端到端推断光源数</strong>？以及对"为何这样分解"的可解释性，仍是开放问题。</p>
+      <p class="pub">瓶颈：变长结构化输出</p>
+    </div>
+    <div class="card"><h4 style="color:var(--bad)">⑦ 算力与移动端部署</h4>
+      <p>像素级 DNN（LSMI-U 56M）无法进手机实时视频。IFFCC(1.2万参数)、SPTY(2M)、set transformer 是轻量方向，但<strong>精度与速度的平衡</strong>仍在拉锯。视频还需时序一致性（当前研究少）。</p>
+      <p class="pub">瓶颈：实时 + 低功耗</p>
+    </div>
+    <div class="card"><h4 style="color:var(--bad)">⑧ 多光谱融合的独特难题</h4>
+      <p>多光谱相机<strong>成本/尺寸/功耗</strong>高；通道数取舍（Spectricity 15 通道快照）；MS→RGB 转换不完美（尤其荧光灯）；如何把 MS 局部白点与<strong>主 RGB 成像</strong>对齐融合（手机多光谱多为辅助测光，不参与主成像）。华为红枫路线正在攻这一问题。</p>
+      <p class="pub">瓶颈：sensor + 系统级集成</p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="h">⚠ 最深的一层矛盾</div>
+    <p style="margin:0"><strong>Local AWB 的"局部"既是解法也是根源。</strong>局部化让我们能处理多光源，但也让每个估计单元可用的颜色信息骤减，把"ill-posed 反问题"推向更病态。所有技术（多光谱、物理先验、拆分光源、上下文语义）本质上都在<strong>给局部单元补回信息</strong>——这是理解全部待解难题的统一视角。</p>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>未来研究方向探索</h2>
+
+  <h3><span class="t">6.1</span>物理先验 + 学习型（Hybrid）</h3>
+  <p>Xue 2025 的主-从模型指明方向：<strong>把物理图像形成（窄带反射率↔SPD 相关性）作为归纳偏置嵌入网络</strong>，而非纯数据驱动。优点是样本效率高、可解释、跨域稳。下一步是把这种物理约束<strong>下沉到逐像素</strong>，并与 AID 式分解结合。</p>
+
+  <h3><span class="t">6.2</span>多光谱 + 局部分解（最有前景的融合）</h3>
+  <p>把 <strong>AID 的 slot attention 接到多光谱输入</strong>：slot 负责表示场景级多光谱光源，权重图在光谱空间估混合——既保留 AID 的可解释/光照编辑能力，又用多光谱压低局部歧义（呼应 CIC33 表4 的 29%/25% 提升）。这是<strong>当前最接近"完美 Local AWB"的组合</strong>，也是华为 IJCV2024(WB) + WACV2025(CCM) + 红枫传感器可拼出的完整栈。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="50" width="150" height="100" rx="10" fill="#241a2e" stroke="#c084fc"/>
+      <text x="95" y="85" fill="#c084fc" font-size="12" font-family="mono" text-anchor="middle">MS 输入</text><text x="95" y="108" fill="#9aa3bd" font-size="10" text-anchor="middle">15-ch S1-M</text><text x="95" y="125" fill="#9aa3bd" font-size="10" text-anchor="middle">/ 红枫</text>
+      <line x1="170" y1="100" x2="240" y2="100" stroke="#4fd1ff" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="248" y="50" width="190" height="100" rx="10" fill="#1b1f2e" stroke="#4fd1ff"/>
+      <text x="343" y="80" fill="#4fd1ff" font-size="12" font-family="mono" text-anchor="middle">Slot Attention</text><text x="343" y="100" fill="#9aa3bd" font-size="10" text-anchor="middle">K 个光谱光源</text><text x="343" y="118" fill="#9aa3bd" font-size="10" text-anchor="middle">+ 质心匹配损失</text><text x="343" y="136" fill="#9aa3bd" font-size="10" text-anchor="middle">(AID 思想)</text>
+      <line x1="438" y1="100" x2="508" y2="100" stroke="#4fd1ff" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="516" y="50" width="184" height="100" rx="10" fill="#151823" stroke="#7bed9f"/>
+      <text x="608" y="80" fill="#7bed9f" font-size="12" font-family="mono" text-anchor="middle">逐像素光照图</text><text x="608" y="100" fill="#9aa3bd" font-size="10" text-anchor="middle">α_k(x)·ℓ_k</text><text x="608" y="118" fill="#9aa3bd" font-size="10" text-anchor="middle">+ 光照编辑</text><text x="608" y="136" fill="#ffd166" font-size="10" text-anchor="middle">歧义↓ 可解释↑</text>
+    </svg>
+    <div class="cap">图 6-1 · "多光谱 + AID 式分解"融合架构示意（最有前景方向）</div>
+  </div>
+
+  <h3><span class="t">6.3</span>生成式 / 扩散模型</h3>
+  <p>GCC 证明扩散先验可用于光照估计与跨相机泛化。未来：① <strong>逐像素生成光照图</strong>（扩散去噪光照场）；② 用扩散模型做<strong>物理约束的数据增强</strong>（模拟任意混合光源的密集真值）；③ 把"局部白点歧义"显式建模为扩散的<strong>不确定性</strong>（CIC33 未来工作之一）。</p>
+
+  <h3><span class="t">6.4</span>Transformer / 时空建模</h3>
+  <p>SAIGFormer（2025，低光）用"动态积分图 + 空间自适应光照估计器 + 光照引导注意力"处理非均匀光照，证明 transformer 对<strong>空间变化照明</strong>有效。多尺度融合（Luo 2025）也指向"尺度感知"。视频 Local AWB 还需<strong>时序一致性</strong>建模（当前几乎空白）。</p>
+
+  <h3><span class="t">6.5</span>上下文 / 语义辅助消歧</h3>
+  <p>局部歧义的本质是"信息不足"，补信息的另一来源是<strong>语义与元数据</strong>：① 前后景分割（人脸/天空）→ 分区融合；② <strong>Time-Aware AWB</strong>（Samsung, 2025）：用拍摄时间戳 + 地理位置作为光照先验（~5K 参数，正午/日出/日落 CCT 范围不同）；③ 场景理解网络选择"实际局部白点"。CIC33 也把"用互补信息（场景内容）选实际局部白点"列为未来工作。</p>
+
+  <h3><span class="t">6.6</span>自监督 / 仿真到真实</h3>
+  <p>SMM 已证自监督在 LSMI 有效。CIC33 用<strong>大规模物理模拟训练</strong>取得最佳泛化（表3），指明"sim-to-real + domain adaptation"是突破数据瓶颈的主路。下一步：把模拟的光照混合、互反射、高光都建模进去，缩小 sim-real gap。</p>
+
+  <h3><span class="t">6.7</span>评测体系革新</h3>
+  <p>当前指标（角度误差、ΔE2000）不足以刻画"局部自然度"。需要：① <strong>感知指标 + 用户研究</strong>（LSMI 已有 user-study，应扩展）；② <strong>密集真值协议</strong>（in-the-wild）；③ 区分"物理正确"与"观感偏好"的双重评测。</p>
+
+  <div class="callout future">
+    <div class="h">◇ 一张图看未来收敛点</div>
+    <p style="margin:0">Local AWB 的最终形态很可能是：<strong>多光谱传感（降歧义） + 光源分解网络（可解释） + 物理渲染约束（跨域/样本效率） + 语义/元数据上下文（消局部歧义） + 轻量实时架构（移动端）</strong> 的融合体。它不是某一个新模型，而是上述主线的<strong>合流</strong>。</p>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>总结</h2>
+  <p>Local AWB 是颜色恒常性从"全局单光源"走向"空间变化多光源"的必然演进，也是<strong>多光谱 AWB</strong> 与 <strong>计算摄影</strong> 在像素维的交汇。本文按"思路而非时间"梳理了五条主线：</p>
+  <ul>
+    <li><strong>A 局部统计</strong>（patch/加权）——最早但受限于 patch 边界与局部歧义；</li>
+    <li><strong>B 逐像素 DNN</strong>（LSMI-U/TransCC/PWCC/Yue&Wei）——理论最优但重、敏感于位深；</li>
+    <li><strong>C 光源分解</strong>（AID slot attention、多尺度融合）——可解释、能给光源数/色度；</li>
+    <li><strong>D 高效加速</strong>（IFFCC 积分 UV 直方图）——参数量/速度碾压 DNN；</li>
+    <li><strong>E 多光谱/融合/生成</strong>（CIC33/MIMI、华为双论文、Fusion、GCC）——当前最活跃前沿。</li>
+  </ul>
+  <p>待解难题集中在八个层面：真值歧义、非 Lambertian（互反射/高光）、位深噪声、跨域泛化、数据瓶颈、光源数未知、移动端算力、多光谱系统集成。最值得投入的方向是 <strong>多光谱 + AID 式光源分解</strong> 的融合——它同时攻击"歧义"与"可解释"两个核心，且与华为"红枫传感器 + IJCV2024(WB) + WACV2025(CCM)"的布局天然契合。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 720 120" xmlns="http://www.w3.org/2000/svg">
+      <text x="360" y="36" fill="#cfe0ff" font-size="15" text-anchor="middle" font-weight="700">Global AWB  →  Local AWB  →  多光谱 Local AWB</text>
+      <text x="360" y="66" fill="#9aa3bd" font-size="12.5" text-anchor="middle">统计先验  →  数据驱动  →  物理+数据驱动（降歧义 · 可解释 · 移动端）</text>
+      <line x1="120" y1="84" x2="600" y2="84" stroke="#2a2f42" stroke-width="1.5"/>
+      <circle cx="120" cy="84" r="5" fill="#ffb74d"/><circle cx="360" cy="84" r="5" fill="#4fd1ff"/><circle cx="600" cy="84" r="5" fill="#c084fc"/>
+      <text x="120" y="106" fill="#ffb74d" font-size="10" text-anchor="middle" font-family="mono">2010s初</text>
+      <text x="360" y="106" fill="#4fd1ff" font-size="10" text-anchor="middle" font-family="mono">2021 LSMI</text>
+      <text x="600" y="106" fill="#c084fc" font-size="10" text-anchor="middle" font-family="mono">2024–26 前沿</text>
+    </svg>
+    <div class="cap">图 7-1 · Local AWB 的演进主轴</div>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>参考文献</h2>
+  <div class="ref">
+    <p>[1] Keustermans, Van Beers, Hermans, Borgoo, Jacobs. <b>"Enhancing Local Automatic White Balance with Multi-Spectral Imaging."</b> Color and Imaging Conference (CIC33), 2025. <a href="https://github.com/user-attachments/files/23166274/CIC33.pdf">PDF</a> · <a href="https://github.com/Spectricity/MIMI-dataset">MIMI 数据集</a>（用户本地论文，本文 §4.1 核心）</p>
+    <p>[2] Kim, Kim, Nam, et al. <b>"Large Scale Multi-Illuminant (LSMI) Dataset for Developing White Balance Algorithm under Mixed Illumination."</b> ICCV 2021. <a href="https://openaccess.thecvf.com/content/ICCV2021/papers/Kim_Large_Scale_Multi-Illuminant_LSMI_Dataset_for_Developing_White_Balance_Algorithm_ICCV_2021_paper.pdf">PDF</a> · <a href="https://github.com/DY112/LSMI-dataset">代码/数据</a>（数据集+LSMI-U 基线，§3.2）</p>
+    <p>[3] Kim, Kim, Yu, Kim. <b>"Attentive Illumination Decomposition Model for Multi-Illuminant White Balancing (AID)."</b> CVPR 2024. <a href="https://www.dykim.me/projects/aid">项目页</a> · <a href="https://ar5iv.labs.arxiv.org/html/2402.18277">arXiv</a>（§3.3 核心）</p>
+    <p>[4] Wei, Qian, Chen, Dai, Jin. <b>"Integral Fast Fourier Color Constancy (IFFCC)."</b> CVPR 2025. <a href="https://arxiv.org/abs/2502.03494">arXiv:2502.03494</a>（§3.4）</p>
+    <p>[5] Yue, Wei. <b>"Robust pixel-wise illuminant estimation algorithm for images with a low bit-depth."</b> Optics Express 32(15):26708–26718, 2024. <a href="https://opg.optica.org/oe/fulltext.cfm?uri=oe-32-15-26708">PDF</a>（§3.2 重点）</p>
+    <p>[6] Luo, Li, Liang. <b>"Multi-illuminant Color Constancy via Multi-scale Illuminant Estimation and Fusion."</b> arXiv:2502.02021, 2025（§3.3）</p>
+    <p>[7] Serrano-Lozano, Arora, Herranz, Derpanis, Brown, Vazquez-Corral. <b>"Revisiting Image Fusion for Multi-Illuminant White-Balance Correction."</b> ICCV 2025. <a href="https://openaccess.thecvf.com/content/ICCV2025/html/Serrano-Lozano_Revisiting_Image_Fusion_for_Multi-Illuminant_White-Balance_Correction_ICCV_2025_paper.html">PDF</a>（§3.5）</p>
+    <p>[8] Arora. <b>"Image White Balance for Multi-Illuminant Scenes."</b> MSc Thesis, York University, 2024（§3.5）</p>
+    <p>[9] Chang, Fan, Chang, Lo, Tseng, Huang, Liu. <b>"GCC: Generative Color Constancy via Diffusing a Color Checker."</b> CVPR 2025. <a href="https://chenwei891213.github.io/GCC/">项目页</a>（§4.4）</p>
+    <p>[10] Xue, Hu, He, Zheng. <b>"Towards Multi-Source Illumination Color Constancy Through Physics-Based Rendering and Spectral Power Distribution Embedding."</b> IEEE Trans. Computational Imaging 11:1349–1360, 2025. <a href="https://research.buaa.edu.cn/zh/publications/towards-multi-source-illumination-color-constancy-through-physics">链接</a>（§4.3, §6.1）</p>
+    <p>[11] Li, Chen, Hu, Song, Yan, Xiong. <b>"Multi-Spectral Image Color Reproduction."</b> WACV 2025（华为诺亚）. <a href="https://openaccess.thecvf.com/content/WACV2025/papers/Li_Multi-Spectral_Image_Color_Reproduction_WACV_2025_paper.pdf">PDF</a>（§4.2）</p>
+    <p>[12] Koskinen, Acar, Kämäräinen. <b>"Single Pixel Spectral Color Constancy."</b> Int. J. Comput. Vis. 132:287–299, 2024（华为芬兰+坦佩雷，§4.2）</p>
+    <p>[13] Afifi, Zhao, et al. <b>"Time-Aware Auto White Balance in Mobile Photography."</b> Samsung AI Center, arXiv:2504.05623, 2025（§6.5）</p>
+    <p>[14] Kınlı. <b>"Feature distribution statistics as a loss objective for robust white balance correction."</b> Machine Vision and Applications 36:58, 2025（EFDM+Transformer，§3.5 相关）</p>
+    <p>[15] Careaga, Aksoy. <b>"Colorful Diffuse Intrinsic Image Decomposition in the Wild."</b> ACM TOG 43(6), SIGGRAPH Asia 2024（§5② 相关）</p>
+    <p>[16] Gijsenij, Gevers, van de Weijer. <b>"Computational Color Constancy: Survey and Experiments."</b> IEEE TIP 20(9):2361–2374, 2011（背景/分区法，§3.1）</p>
+    <p>[17] Bianco, et al. <b>"CNN-based patch-wise illuminant estimation."</b> / Barron <b>"Convolutional Color Constancy (FC4)."</b> ICCV 2015 / Hu et al. <b>"FC4."</b> CVPR 2017（§3.1, §3.2 基线）</p>
+    <p>[18] Glatt, et al. <b>"Beyond RGB: A Real World Dataset for Multispectral Imaging in Mobile Devices."</b> WACV 2024（三星多光谱数据集，华为路线文档引用）</p>
+    <p>[19] Spectricity. <b>Auto White Balance (AWB) — Local AWB powered by Multispectral Imaging.</b> <a href="https://spectricity.com/applications/awb/">应用页</a>（§4.1 背景）</p>
+    <p>[20] Yue. <b>"Critical considerations for implementing DNN-based AWB and ISP."</b> PhD Thesis, PolyU, 2024（DMCC 跨传感器、位深、AWB+降噪顺序，§5④）</p>
+  </div>
+  <p class="note">说明：本文中的华为多光谱 AWB 论文（[11][12]）方法细节引自本系列《华为多光谱 AWB 路线图与论文详解》；CIC33（[1]）的完整文本由用户本地 PDF 提取。所有量化结果均来自对应原论文。</p>
+</section>
+
+<footer>
+  <div>多光谱 AWB 研究系列 · 文档三《Local AWB 研究热点与待解难题》</div>
+  <div style="margin-top:6px">配套：① 多光谱 AWB 研究综合报告　② 白平衡与光源概念辨析　③ 华为多光谱 AWB 路线图与论文详解　④ 本文</div>
+  <div style="margin-top:6px;color:#7b8398">最后更新：2026-07-11 · 聚焦 Local AWB 的研究思路 / 现有方案 / 待解难题 / 未来方向</div>
+</footer>
+
+</div>
+</body>
+</html>

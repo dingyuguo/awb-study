@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIC33 论文详解：用多光谱增强局部自动白平衡（小白友好版）</title>
+<style>
+:root{
+  --bg:#0d1117; --bg-card:#161b22; --bg-card-hover:#1c2128; --border:#30363d;
+  --text:#c9d1d9; --text-bright:#f0f6fc; --text-dim:#8b949e;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --green:#3fb950; --red:#f85149;
+  --yellow:#d29922; --purple:#bc8cff; --orange:#db6d28; --teal:#39c5cf;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans CJK SC',sans-serif;background:var(--bg);color:var(--text);line-height:1.85;font-size:15px;}
+.container{max-width:1120px;margin:0 auto;padding:40px 24px 80px;}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#0d1117 0%,#161b22 55%,#0d1117 100%);border:1px solid var(--border);border-radius:16px;padding:46px 40px;margin-bottom:36px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-50%;right:-15%;width:560px;height:560px;background:radial-gradient(circle,rgba(57,197,207,0.08) 0%,transparent 70%);pointer-events:none;}
+.hero h1{font-size:30px;color:var(--text-bright);margin-bottom:10px;font-weight:700;line-height:1.35;}
+.hero .subtitle{font-size:16px;color:var(--teal);margin-bottom:18px;font-weight:500;}
+.hero .lead{color:var(--text);font-size:15px;margin-bottom:18px;max-width:880px;}
+.hero .meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text-dim);}
+.hero .meta span{display:flex;align-items:center;gap:6px;background:rgba(88,166,255,0.06);padding:5px 12px;border-radius:12px;border:1px solid rgba(88,166,255,0.15);}
+.tag{background:rgba(88,166,255,0.1);color:var(--accent);padding:3px 10px;border-radius:12px;border:1px solid rgba(88,166,255,0.2);font-size:12px;}
+
+/* Section */
+.section{margin-bottom:46px;}
+.section-title{font-size:23px;color:var(--text-bright);font-weight:700;margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:10px;}
+.section-title .num{background:var(--accent-dim);color:#fff;font-size:14px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.section-desc{color:var(--text-dim);font-size:14px;margin-bottom:22px;}
+
+h2{font-size:19px;color:var(--text-bright);margin:26px 0 12px;font-weight:600;}
+h3{font-size:16px;color:var(--accent);margin:22px 0 10px;font-weight:600;}
+h4{color:var(--teal);font-size:14px;font-weight:600;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;}
+p{margin-bottom:11px;}
+ul,ol{margin:8px 0 12px 22px;}
+li{margin-bottom:6px;}
+strong{color:var(--text-bright);}
+code{background:rgba(110,118,129,0.2);padding:1px 6px;border-radius:5px;font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:13px;color:var(--orange);}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* info-box / callout */
+.info-box{background:var(--bg-card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;padding:18px 20px;margin:16px 0;}
+.info-box.green{border-left-color:var(--green);}
+.info-box.teal{border-left-color:var(--teal);}
+.info-box.yellow{border-left-color:var(--yellow);}
+.info-box.red{border-left-color:var(--red);}
+.info-box.purple{border-left-color:var(--purple);}
+.callout{background:linear-gradient(135deg,rgba(210,153,34,0.07),rgba(248,81,73,0.05));border:1px solid rgba(210,153,34,0.3);border-radius:10px;padding:16px 20px;margin:16px 0;}
+.callout .ttl{color:var(--yellow);font-weight:700;font-size:13px;letter-spacing:.5px;margin-bottom:6px;text-transform:uppercase;}
+
+/* formula */
+.formula{background:#0a0e14;border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:14px 0;font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:14px;color:var(--text-bright);overflow-x:auto;line-height:1.7;}
+.formula .c{color:var(--text-dim);}
+
+/* comparison */
+.comparison-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+.comparison-item{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.comparison-item h4{margin-top:0;}
+
+/* table */
+.data-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}
+.data-table th{background:rgba(88,166,255,0.08);color:var(--accent);padding:9px 11px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);}
+.data-table td{padding:9px 11px;border-bottom:1px solid rgba(48,54,61,0.5);}
+.data-table tr:hover td{background:rgba(255,255,255,0.02);}
+.data-table .hl{color:var(--green);font-weight:700;}
+.data-table .bad{color:var(--red);font-weight:700;}
+
+/* paper card */
+.paper-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin:18px 0;}
+.paper-card.spectricity{border-left:4px solid var(--teal);}
+.paper-card.huawei{border-left:4px solid var(--red);}
+.paper-card.samsung{border-left:4px solid var(--purple);}
+.paper-card.academic{border-left:4px solid var(--green);}
+.paper-badge{font-size:12px;padding:4px 10px;border-radius:6px;font-weight:600;white-space:nowrap;}
+.badge-spectricity{background:rgba(57,197,207,0.15);color:var(--teal);border:1px solid rgba(57,197,207,0.3);}
+.badge-huawei{background:rgba(248,81,73,0.15);color:var(--red);border:1px solid rgba(248,81,73,0.3);}
+.badge-samsung{background:rgba(188,140,255,0.15);color:var(--purple);border:1px solid rgba(188,140,255,0.3);}
+.badge-academic{background:rgba(63,185,80,0.15);color:var(--green);border:1px solid rgba(63,185,80,0.3);}
+
+/* svg figure */
+.fig{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;margin:18px 0;text-align:center;}
+.fig svg{max-width:100%;height:auto;}
+.fig .cap{font-size:12px;color:var(--text-dim);margin-top:8px;}
+
+/* references */
+.references{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-top:30px;}
+.references h3{color:var(--text-bright);text-transform:none;letter-spacing:0;}
+.references ol{font-size:13px;color:var(--text-dim);}
+.references li{margin-bottom:8px;}
+.footer{margin-top:40px;text-align:center;color:var(--text-dim);font-size:12px;}
+.kicker{display:inline-block;background:rgba(57,197,207,0.12);color:var(--teal);padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-bottom:14px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <div class="kicker">论文逐句精讲 · 小白友好版</div>
+  <h1>用多光谱增强局部自动白平衡</h1>
+  <div class="subtitle">Enhancing Local Automatic White Balance with Multi-Spectral Imaging — CIC33 (2025)</div>
+  <p class="lead">这是一篇来自 <strong>Spectricity（比利时多光谱摄像头公司）</strong> 的会议论文。它回答了一个很朴素但很难的问题：<strong>在一个场景里，如果不同地方被打上了不同颜色的光，相机怎么给每个地方分别"校白"？</strong> 论文的答案是：给相机多加几个"窄带光谱通道"（多光谱），让网络在更丰富的光谱信息上做局部白平衡，并用大规模"模拟数据"训练，从而比传统 RGB 方法更准、更稳、更省算力。</p>
+  <div class="meta">
+    <span>📄 作者：Keustermans, Van Beers, Hermans, Borgoo, Jacobs</span>
+    <span>🏢 机构：Spectricity（比利时）</span>
+    <span>📍 发表：CIC33, 2025（Color and Imaging Conference 第33届）</span>
+    <span>🎯 任务：Local AWB（局部自动白平衡）</span>
+  </div>
+</div>
+
+<!-- ===== 第0章 背景 ===== -->
+<div class="section">
+  <div class="section-title"><span class="num">0</span> 领域背景大补习（看不懂论文先读这章）</div>
+  <div class="section-desc">如果你对"白平衡/多光谱/局部白点"完全陌生，这章把全部前置知识补齐。已经懂的读者可以直接跳到第 1 章。</div>
+
+  <h2>0.1 光、颜色、人眼与相机</h2>
+  <p>我们看到的"颜色"，本质上是<strong>物体反射的光</strong>进入眼睛后的感受。太阳光或灯泡发出的光，包含从约 <strong>400nm（紫）到 700nm（红）</strong> 的连续波长（可见光光谱）。一个红苹果之所以"红"，是因为它吸收了大部分波长、只把 ~600–700nm 的光反射出来。</p>
+  <p>人眼有三种视锥细胞（L/M/S），分别对长/中/短波长敏感，大脑把这三种信号合成为"颜色"。相机则用一个 <strong>拜耳滤镜（Bayer CFA）</strong> 把每个像素分成 R/G/B 三个宽通道来近似人眼——这就是普通 RGB 相机的来历。注意：相机的 R/G/B 三个通道各自覆盖一大段波长（"宽带"），并不是单一波长。</p>
+
+  <h2>0.2 什么是白平衡（颜色恒常性）</h2>
+  <p>同一个白纸，在黄昏（偏黄）的窗边和在荧光灯（偏蓝绿）的办公室里，相机拍出来的 RGB 值完全不同。但人眼会"自动脑补"：不管什么光，白纸看起来还是白的。这种能力叫 <strong>颜色恒常性（color constancy）</strong>，相机里对应的模块叫 <strong>自动白平衡（AWB）</strong>。</p>
+  <p>AWB 的标准做法分两步（论文引言原话）：</p>
+  <div class="info-box">
+    <h4>AWB 的两步定义（论文原文）</h4>
+    <p>① <strong>检测光源的"白点"（white point）</strong>：即当前光是什么颜色；<br>② <strong>把该光源替换成标准光源</strong>（如 D65，正午日光）：用对角矩阵（每个通道乘一个增益）把图像"校白"。</p>
+  </div>
+  <p>白点本质上就是"光源颜色"在相机通道上的投影（一个 3 维向量，对 RGB 相机）。"校白"就是算出"当前光源 → 标准白光"的比值（对角矩阵），乘到图像上约掉光源。我们在之前的《白平衡与光源概念辨析》里详细推导过这层关系——这里只需记住：<strong>白平衡 = 估光源 → 校正到标准光源</strong>。</p>
+
+  <h2>0.3 成像模型：一张照片是怎么"算"出来的（重点公式）</h2>
+  <p>理解这篇论文，最关键的是下面这个成像模型。对场景中一个"点"（或一小块），相机记录到的测量值 <code>m</code> 由三部分相乘得到：</p>
+  <div class="formula">
+    m = S · Λ<sub>r</sub> · λ<br>
+    <span class="c">// m : 相机测到的光谱测量值（RGB 是 3 维，MSI 是 15 维）<br>
+    // S : 相机的光谱灵敏度矩阵（每一列是一个通道对不同波长的响应）<br>
+    // Λ<sub>r</sub> : 物体反射率的对角矩阵（对角线上是反射光谱 r(λ)）<br>
+    // λ : 光源的光谱功率分布 SPD（不同波长的光强）</span>
+  </div>
+  <p>直觉：光 <code>λ</code> 照到物体上，物体只反射 <code>Λ<sub>r</sub></code> 那部分，再被相机用 <code>S</code> "看一眼"，得到测量 <code>m</code>。问题来了——给定 <code>m</code> 和 <code>S</code>，我们想还原物体的真实颜色 <code>r</code>，但 <code>λ</code>（光源）也是未知的。<strong>两个未知数、一个方程，这是一个欠定（ill-posed）问题</strong>。这就是白平衡之所以难的根本原因。</p>
+
+  <h3>同色异谱（metamerism）：RGB 的死穴</h3>
+  <p>两个不同的光源（比如某 LED 和某荧光灯），只要它们经过相机 3 个 RGB 通道的积分结果一样，就会让相机拍出<strong>完全相同的 RGB 值</strong>。但物体在它们下面真实的颜色还原可能完全不同。RGB 只有 3 个宽通道，<strong>信息量太少，分不清这种"同色异谱"的光源</strong>。这正是多光谱的切入点。</p>
+
+  <h2>0.4 全局 WB vs 局部 WB（Local AWB）vs 多光源</h2>
+  <div class="comparison-grid">
+    <div class="comparison-item">
+      <h4>🌍 全局 WB（传统）</h4>
+      <p>整张图假设只有一个光源，估一个白点，全图乘同一个对角矩阵。简单，但遇到混合光就翻车。</p>
+    </div>
+    <div class="comparison-item">
+      <h4>📍 局部 WB / Local AWB</h4>
+      <p>场景里不同位置可能有不同光源（窗边日光 + 室内灯光）。局部 WB 要给<strong>每个区域/每个像素</strong>估一个各自的白点，输出一张"白点图"（illumination map），而不是单个白点。</p>
+    </div>
+  </div>
+  <p>局部 WB 比全局 WB 难得多：每个局部区域颜色可能很少（比如一大块红墙），用来估光源的线索极少，歧义更大。论文的核心卖点就是：<strong>多光谱的窄带信息能大幅降低这种局部歧义</strong>。</p>
+
+  <h2>0.5 为什么 RGB 不够，多光谱为何破局</h2>
+  <p>多光谱相机（如本文的 Spectricity S1-M）不是 3 个宽通道，而是 <strong>15 个窄带通道</strong>（每个通道只"看"一小段波长）。这带来两个好处：</p>
+  <ul>
+    <li><strong>光谱指纹</strong>：不同光源在 15 个窄带上的"形状"差异明显，几乎可以唯一区分（华为 IJCV 2024 首次系统证实：场景平均光谱形态 ≈ 光源光谱）。</li>
+    <li><strong>近似可逆</strong>：3 维 RGB → 真实光源 SPD 不可逆（无穷多 SPD 投影到同一点）；而 15 维 MSI → SPD 近似可逆（见第 2.4 节的 LSMI 成像模型分析）。</li>
+  </ul>
+
+  <h2>0.6 怎么衡量"校白校得好不好"：两个指标</h2>
+  <div class="info-box teal">
+    <h4>评价指标（论文全程使用）</h4>
+    <p><strong>① 白点角度误差（white point angular error，单位：度）</strong>：把预测白点和真值白点都当成单位向量，算它们之间的夹角。<br>小角度 = 估得准。论文报 mean（平均）和 median（中位数）。<br><br><strong>② 颜色准确度 ΔE2000</strong>：白平衡之后，用 Macbeth 色卡算预测颜色与标准色的差异。ΔE 越小越准（一般 &lt;3 人眼难以察觉，&lt;6 尚可）。</p>
+  </div>
+</div>
+
+<!-- ===== 第1章 概览 ===== -->
+<div class="section">
+  <div class="section-title"><span class="num">1</span> 论文概览：它在做什么、贡献是什么</div>
+
+  <div class="paper-card spectricity">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div class="paper-title">Enhancing Local Automatic White Balance with Multi-Spectral Imaging</div>
+        <div class="paper-authors">Keustermans J, Van Beers R, Hermans J, Borgoo A, Jacobs M · Spectricity (Belgium) · CIC33, 2025</div>
+      </div>
+      <span class="paper-badge badge-spectricity">Spectricity · CIC33 2025</span>
+    </div>
+    <div class="paper-body" style="margin-top:14px;">
+      <h4>一句话贡献</h4>
+      <p>提出一个<strong>基于多光谱（MSI）的局部白平衡方法</strong>：用一个<strong>参数量很小（约 2M）的 Set Transformer 网络</strong>，在<strong>大规模模拟多光谱数据</strong>上训练，在局部白点估计上 <strong>与 SOTA 持平（LSMI 上）且泛化更好（自有验证集上超越 SOTA）</strong>，并证明 <strong>多光谱比 RGB 更准</strong>（角度误差↓约 29%，ΔE↓约 25%）。</p>
+      <h4>三个核心贡献点</h4>
+      <ul>
+        <li><strong>方法</strong>：一个简单、轻量、permutation-invariant 的 Set Transformer 网络，可做 RGB 版也可做 MSI 版。</li>
+        <li><strong>数据</strong>：用"模拟测量"训练（绕开真实数据稀缺），并提出 <strong>MIMI 验证集</strong>（774 场景，RGB+MSI 双摄像头配对，白卡真值）。</li>
+        <li><strong>发现</strong>：① 模拟数据训练的泛化性远好于中等规模真实集（LSMI）训练的；② MSI 比 RGB 局部白点更准。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="ttl">⚠️ 论文在领域里的位置</div>
+    <p>它<strong>不是</strong>从零发明多光谱白平衡——它站在前人肩膀上：多光谱用于白平衡的前身是华为 IJCV 2024《Single Pixel Spectral Color Constancy》[10]；local/multi-illuminant 的 SOTA 参照是 LSMI [5] 与 AID [6]；它的网络 backbone 是 Set Transformer [12]。论文的独特价值在于：<strong>把"多光谱 + 局部白平衡"在真实移动硬件（Spectricity S1-M 快照模组）上做成可验证的方案，并尖锐指出"LSMI 成像模型对 RGB 不准"这一长期被忽视的问题</strong>。</p>
+  </div>
+</div>
+
+<!-- ===== 第2章 方法 ===== -->
+<div class="section">
+  <div class="section-title"><span class="num">2</span> 方法逐节精讲（论文 "Methods and data" 章）</div>
+  <div class="section-desc">这一章是论文的硬核。我们按"训练数据 → 网络 → 验证数据 → LSMI 模型批判"四节展开，并放大两个最该讲清的点：网络（Set Transformer）与 LSMI 成像模型的近似误差。</div>
+
+  <h2>2.1 训练数据集：用"模拟测量"绕开真实数据稀缺</h2>
+  <p>论文开篇就点明：要训好局部白平衡，需要大量带"局部白点真值"的多光谱图；但<strong>这种数据集目前不存在</strong>（真实测量无法获得逐像素密集白点真值）。所以作者选择<strong>模拟生成训练数据</strong>。</p>
+
+  <h3>模拟数据怎么造？</h3>
+  <p>在"完美朗伯体（Lambertian，即理想漫反射，无高光、无互反射）"假设下，每个测量 = 一个 <strong>光源 SPD</strong> 与一个 <strong>反射光谱</strong> 相乘后，投影到相机敏感度 <code>S</code> 上。作者准备两个大数据库：</p>
+  <div class="comparison-grid">
+    <div class="comparison-item">
+      <h4>💡 光源数据库</h4>
+      <p><strong>32768 个</strong> illuminant SPD，涵盖荧光灯、白炽灯、卤素灯、LED，以及不同大气条件下的日光，还有它们的混合。</p>
+    </div>
+    <div class="comparison-item">
+      <h4>🎨 反射率数据库</h4>
+      <p><strong>6814 个</strong> reflectance 光谱（公开 + 内部测量），代表各种物体表面颜色。</p>
+    </div>
+  </div>
+
+  <h3>一个训练样本（set）的生成协议</h3>
+  <p>论文说"典型大小 128"——即每个训练样本是 <strong>128 个测量的集合</strong>。生成步骤如下（这是复现的关键，见第 4 章）：</p>
+  <div class="formula">
+    <span class="c">// 伪代码：生成一个 set（128 个 measurement）</span><br>
+    1. 从 32768 个光源中选 1 个 或 多个光源；<br>
+    2. 若多个光源 → 随机生成混合系数，拼成该 measurement 的"专属光源"；<br>
+    3. 随机采样 1~15 个反射率光谱，分配给该 measurement 的像素；<br>
+    4. measurement = (光源 SPD) × (反射率) 投影到相机 SSF（S1-M 得 15 维，Nikon 得 3 维）；<br>
+    5. 真值白点 = 该 measurement 的光源 SPD 投影到同一 SSF 并归一化；<br>
+    6. 每个光源（或混合）共造 16 个 set → 总训练集 = <strong>524288 个 set</strong>。
+  </div>
+  <p>关键点：<strong>约一半 set 用单光源，一半用混合光源</strong>（对应多光源/局部场景）。而且<strong>每个 epoch 都重新打乱光源顺序、重新采样反射率</strong>——也就是说，每个 epoch 喂给网络的模拟样本都不一样，这是一种"无限数据增强"，有效防止过拟合。</p>
+
+  <div class="callout">
+    <div class="ttl">🤔 模拟数据的局限（论文自己承认）</div>
+    <p>这个模型很简化：① 不考虑真实图像里光源/反射率的<strong>空间与光谱相关性</strong>；② 不考虑朗伯体之外的<strong>复杂光-物质交互</strong>（高光、互反射、次表面散射）。但论文用实验结果证明：<strong>即便这么简化，在真实数据上仍能取得有竞争力的局部白点估计</strong>。这正是"大规模模拟 + 轻量网络"路线的底气。</p>
+  </div>
+
+  <h2>2.2 网络架构（重点！为什么是 Set Transformer）</h2>
+  <p>论文说：现有 local WB 方法用的都是大模型（如 LSMI-U 有 <strong>56M 参数</strong>），超出手机算力。所以他们用了一个<strong>相对简单、基于 Transformer、参数很少</strong> 的网络。整个网络由 4 个 block 串起来：</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 680 230" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+      <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#58a6ff"/></marker></defs>
+      <rect x="10" y="80" width="110" height="70" rx="8" fill="#161b22" stroke="#39c5cf" stroke-width="1.5"/>
+      <text x="65" y="108" fill="#f0f6fc" font-size="12" text-anchor="middle">Encoder</text>
+      <text x="65" y="126" fill="#8b949e" font-size="10" text-anchor="middle">逐点 MLP</text>
+      <rect x="150" y="80" width="130" height="70" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="215" y="108" fill="#f0f6fc" font-size="12" text-anchor="middle">Aggregation</text>
+      <text x="215" y="126" fill="#8b949e" font-size="10" text-anchor="middle">Set Transformer</text>
+      <rect x="310" y="80" width="130" height="70" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="375" y="108" fill="#f0f6fc" font-size="12" text-anchor="middle">Dispersion</text>
+      <text x="375" y="126" fill="#8b949e" font-size="10" text-anchor="middle">Set Transformer</text>
+      <rect x="470" y="80" width="120" height="70" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="530" y="108" fill="#f0f6fc" font-size="12" text-anchor="middle">Decoder</text>
+      <text x="530" y="126" fill="#8b949e" font-size="10" text-anchor="middle">逐点 MLP</text>
+      <line x1="120" y1="115" x2="148" y2="115" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="280" y1="115" x2="308" y2="115" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="440" y1="115" x2="468" y2="115" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="65" y="55" fill="#39c5cf" font-size="11" text-anchor="middle">输入：128 个</text>
+      <text x="65" y="70" fill="#39c5cf" font-size="11" text-anchor="middle">MSI 向量(15维)</text>
+      <text x="530" y="190" fill="#3fb950" font-size="11" text-anchor="middle">输出：128 个</text>
+      <text x="530" y="205" fill="#3fb950" font-size="11" text-anchor="middle">局部白点(15维)</text>
+      <line x1="65" y1="150" x2="65" y2="158" stroke="#39c5cf" stroke-width="1.5"/>
+      <line x1="530" y1="150" x2="530" y2="170" stroke="#3fb950" stroke-width="1.5"/>
+    </svg>
+    <div class="cap">图：CIC33 网络四块结构。输入是无序集合（128 个测量），输出是同序集合（128 个白点）。</div>
+  </div>
+
+  <ul>
+    <li><strong>① Encoder</strong>：简单的全连接前馈网络（feed-forward），<strong>独立</strong>地处理每个测量（不跨测量交互），把它编码成一个 embedding。</li>
+    <li><strong>② Aggregation（聚合）</strong>：用 <strong>Set Transformer</strong> 从 128 个 embedding 里<strong>提炼出全局的"光源信息"</strong>。</li>
+    <li><strong>③ Dispersion（分发）</strong>：再用 <strong>Set Transformer</strong> 把提炼出的全局光源信息<strong>回灌到每一个</strong> embedding 上（让每个点都知道"全局大概什么光"，再结合自身线索估自己的白点）。</li>
+    <li><strong>④ Decoder</strong>：简单全连接，把每个 embedding 解码成<strong>该点的白点</strong>（15 维，归一化）。</li>
+  </ul>
+
+  <h3>为什么非得是 Set Transformer？关键性质：置换不变（permutation-invariant）</h3>
+  <p>输入是一"集合"（set）的 128 个测量，<strong>没有顺序、没有空间结构</strong>。如果换个打乱顺序喂进去，输出（对应每个点的白点）也应当只是 correspondingly 打乱，而不应改变。普通 CNN/RNN 对顺序敏感，不适合；<strong>Set Transformer 天然置换不变</strong>，完美契合。而且它用"诱导点（inducing points）"把注意力复杂度从 O(n²) 降到 O(n·m)，所以能塞进手机。</p>
+
+  <div class="info-box purple">
+    <h4>Set Transformer 核心公式（论文 backbone [12]，详见第 5.1 节）</h4>
+    <p>MAB(A,B) = LayerNorm( A + rFF( LayerNorm( A + MHA(A,B) ) ) ) &nbsp;<span class="c">// 多头注意力块</span><br>
+    SAB(X) = MAB(X, X) &nbsp;<span class="c">// 自注意力</span><br>
+    ISAB(X) = MAB( X, MAB( I, X ) ) &nbsp;<span class="c">// I 是可学习的"诱导点"，实现置换不变 + 降复杂度</span><br>
+    PMA(X) = MAB( I, SAB(X) ) &nbsp;<span class="c">// 池化聚合</span></p>
+  </div>
+
+  <h3>两种变体 + 微调</h3>
+  <ul>
+    <li><strong>RGB → RGB</strong>：输入 RGB 测量，预测该 RGB 相机的白点。</li>
+    <li><strong>MSI → MSI</strong>：输入 15 通道多光谱测量，预测多光谱白点（本文主推）。</li>
+    <li><strong>MSI → MSI → RGB</strong>：先估 MSI 白点，再转换到某 RGB 相机（用于跨相机对比）。</li>
+    <li>也可在真实数据上 <strong>fine-tune</strong>。</li>
+  </ul>
+  <p>训练设置：<strong>100 epochs</strong>，初始学习率 <code>1e-4</code>，若验证损失 5 个 epoch 不降则减半；数据增强包括<strong>光源 SPD 的小随机形变</strong> + <strong>给模拟测量加真实 shot noise（散粒噪声）</strong>。</p>
+
+  <h2>2.3 验证数据集 MIMI：怎么拿到"真值"</h2>
+  <p>模拟数据只能训练，<strong>验证必须靠真实数据</strong>。但论文认为 LSMI 数据集的"密集白点图"不够准（见 2.4），所以自己采了一个 <strong>MIMI（Multi-Illuminant and Multi-spectral Image）验证集</strong>：</p>
+  <ul>
+    <li><strong>774 个场景</strong>，每个场景一对图：一张<strong>无白卡</strong>（用于跑算法），一张<strong>有白卡</strong>（用于量真值）。</li>
+    <li>硬件：把 <strong>Samsung Galaxy Tab S9（RGB）</strong> 与 <strong>Spectricity S1-M VIS（15 通道 MSI 快照模组）</strong> 并排固定在三脚架上（保证两图严格对齐）。</li>
+    <li>白点真值：在场景中平面上摆白卡，第二张图量白卡处的多光谱值即该处真值白点；用 <strong>Macbeth 色卡</strong> 量白平衡后的 ΔE2000。</li>
+    <li><strong>关键优势</strong>：因为 MSI 可精确变换成任意 RGB 相机的敏感度（见图 6），所以 MIMI 能给"任何 RGB 相机"生成白点真值——这是它比 LSMI 更灵活的地方。</li>
+  </ul>
+
+  <h2>2.4 LSMI 成像模型的近似误差（论文最锋利的分析）</h2>
+  <p>论文花了整整一节，指出 <strong>LSMI 数据集用来生成"密集白点图"的成像模型，对 RGB 相机是不准确的</strong>。这是理解"为什么 LSMI 训练会过拟合/泛化差"的理论根因。推导如下：</p>
+  <div class="formula">
+    真实模型（表达式1）: &nbsp; m = S · Λ<sub>r</sub> · λ<br>
+    LSMI 近似（表达式2）:<br>
+    &nbsp;&nbsp;m ≈ S · Λ<sub>r</sub> · S<sup>+</sup> · S · λ<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;= D<sub>r</sub> · λ &nbsp;&nbsp;<span class="c">// D<sub>r</sub> = S·Λ<sub>r</sub>·S<sup>+</sup></span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;= d<sub>r</sub> ⊙ λ &nbsp;&nbsp;<span class="c">// d<sub>r</sub> = D<sub>r</sub>·1（把 D<sub>r</sub> 当成对角阵，取对角线）</span>
+  </div>
+  <p>这个近似成立，必须同时满足两个假设：</p>
+  <div class="comparison-grid">
+    <div class="comparison-item">
+      <h4>假设 A</h4>
+      <p>光源 SPD <code>λ</code> 完全落在 <code>S</code> 的列空间里（即 <code>S⁺Sλ = λ</code>）。对 RGB（S 只有 3 列）几乎不成立——真实光源是高维曲线，3 个基张成的子空间装不下。</p>
+    </div>
+    <div class="comparison-item">
+      <h4>假设 B</h4>
+      <p><code>D<sub>r</sub></code> 是对角矩阵。但 <code>D<sub>r</sub> = S·Λ<sub>r</sub>·S⁺</code> 一般不是对角的（通道间有串扰）。对 MSI（15 通道，S 接近满秩）则近似成立。</p>
+    </div>
+  </div>
+  <div class="callout">
+    <div class="ttl">💡 一句话结论</div>
+    <p>LSMI 的密集白点图建立在"RGB 也能精确反解光源"的近似上，而这个近似<strong>对 RGB 相机很差、对多光谱相机才好</strong>。所以 LSMI 标出来的"真值"本身就有系统误差，用它训练/验证自然泛化差——这也解释了第 3 章 Table 3 里 LSMI-U 在 MIMI 上崩掉的现象。</p>
+  </div>
+</div>
+
+<!-- ===== 第3章 实验 ===== -->
+<div class="section">
+  <div class="section-title"><span class="num">3</span> 实验结果逐表精讲</div>
+  <div class="section-desc">论文三个表对应三个问题：① 在 LSMI 上能否打平 SOTA？② 在自己的验证集上谁泛化更好？③ 多光谱比 RGB 好多少？</div>
+
+  <h2>3.1 Table 2：在 LSMI 测试集（Nikon D810）上打平 SOTA</h2>
+  <table class="data-table">
+    <thead><tr><th>网络</th><th>训练数据</th><th>Mean↓</th><th>Median↓</th></tr></thead>
+    <tbody>
+      <tr><td>LSMI-U [5]</td><td>LSMI</td><td>1.9</td><td>1.2</td></tr>
+      <tr><td>SPTY（本文）</td><td>LSMI</td><td>2.0</td><td>1.6</td></tr>
+      <tr><td>SPTY（本文）</td><td>纯模拟</td><td>2.5</td><td>1.8</td></tr>
+    </tbody>
+  </table>
+  <p><strong>解读</strong>：SPTY 只有 <strong>2M 参数</strong>（LSMI-U 是 56M，是其 1/28），但在 LSMI 上<strong>基本打平</strong>（2.0 vs 1.9）。纯模拟训练的版本略差（2.5），因为 LSMI 里有些"蓝/绿/红"彩色光源不在模拟库的 32768 个 SPD 中——这是模拟数据的覆盖盲区。结论：<strong>小网络 + 模拟数据，在"同源"测试集上已够用</strong>。</p>
+
+  <h2>3.2 Table 3：在自己的 MIMI 验证集（转 Nikon D810）上——泛化性的决胜局</h2>
+  <table class="data-table">
+    <thead><tr><th>网络</th><th>训练数据</th><th>Mean↓</th><th>Median↓</th><th>ΔE2000↓</th></tr></thead>
+    <tbody>
+      <tr><td>LSMI-U [5]</td><td>LSMI</td><td class="bad">4.4</td><td class="bad">3.7</td><td class="bad">6.3</td></tr>
+      <tr><td>SPTY（本文）</td><td>LSMI</td><td>3.8</td><td>2.7</td><td>6.0</td></tr>
+      <tr><td class="hl">SPTY（本文）</td><td class="hl">纯模拟</td><td class="hl">3.1</td><td class="hl">2.0</td><td class="hl">5.1</td></tr>
+    </tbody>
+  </table>
+  <p><strong>这是全文最重要的结果</strong>：</p>
+  <ul>
+    <li>当离开 LSMI、来到真实多样的 MIMI 场景时，<strong>LSMI-U 严重退化（4.4°）</strong>，而纯模拟训练的 SPTY 反而<strong>最好（3.1°）</strong>。</li>
+    <li>更反直觉的是：把 SPTY 在 LSMI 上 fine-tune，<strong>反而更差</strong>（3.8°）——说明 LSMI 训练集让网络"学偏了"，过拟合到 LSMI 的分布，丧失泛化。</li>
+    <li>论文 Figure 7 展示了一个 LSMI-U 失败案例：白平衡后"几乎把所有颜色都去掉了"（严重偏色）。</li>
+  </ul>
+  <div class="info-box green">
+    <h4>核心洞见</h4>
+    <p>训练数据规模与多样性 &gt; 网络大小。中等规模真实集（LSMI）会过拟合；<strong>大规模、覆盖广的模拟数据（524288 set，含混合光源、噪声增强）泛化性最好</strong>。这呼应了我们《Local AWB 待解难题》里"数据瓶颈"那一节。</p>
+  </div>
+
+  <h2>3.3 Table 4：多光谱 vs RGB——本文的招牌结论</h2>
+  <table class="data-table">
+    <thead><tr><th>网络变体</th><th>Mean↓</th><th>Median↓</th><th>ΔE2000↓</th></tr></thead>
+    <tbody>
+      <tr><td>RGB → RGB</td><td>2.8</td><td>1.9</td><td>4.8</td></tr>
+      <tr><td class="hl">MSI → MSI</td><td class="hl">2.0</td><td class="hl">1.5</td><td class="hl">3.6</td></tr>
+      <tr><td>MSI → MSI → RGB</td><td>2.3</td><td>1.8</td><td>n/a</td></tr>
+    </tbody>
+  </table>
+  <p><strong>解读</strong>：</p>
+  <ul>
+    <li><strong>MSI → MSI 比 RGB → RGB：角度误差 2.8→2.0（降约 29%），ΔE 4.8→3.6（降约 25%）</strong>。这是论文"多光谱助力局部白平衡"的直接证据。</li>
+    <li>把 MSI 白点转到 RGB 域（MSI→MSI→RGB）略差（2.3），源于<strong>交叉相机差异</strong>和<strong>转换不完美</strong>（尤其荧光灯）。</li>
+    <li>MSI 方法 ΔE 特别低，因为"用白点从 MSI 测量里移除光照"比在 RGB 里更精确（见 0.5 节的"近似可逆"）。</li>
+  </ul>
+
+  <h2>3.4 综合结论</h2>
+  <p>① 小网络在 LSMI 上能打平大模型；② <strong>模拟训练泛化远胜 LSMI 训练</strong>；③ <strong>多光谱比 RGB 局部白点更准、颜色更真</strong>。三点共同支撑论文标题：<em>Enhancing Local AWB with MSI</em>。</p>
+</div>
+
+<!-- ===== 第4章 复现指南 ===== -->
+<div class="section">
+  <div class="section-title"><span class="num">4</span> 复现指南：要准备什么、怎么搭、怎么训</div>
+  <div class="section-desc">下面把论文"没写全"的工程细节补齐。凡论文<strong>未明确给出</strong>的（如具体 loss 函数），我会<strong>明确标注为推断</strong>，避免你被误导。</div>
+
+  <h2>4.1 复现总览（需要什么）</h2>
+  <div class="comparison-grid">
+    <div class="comparison-item"><h4>📦 数据集</h4><p>① 模拟训练集（自生成）；② MIMI 验证集（需硬件采集，或用其公开版）；③ 相机 SSF（S1-M 15通道 / Nikon D810 3通道）。</p></div>
+    <div class="comparison-item"><h4>🧠 网络</h4><p>Set Transformer 四块，~2M 参数。PyTorch 即可。</p></div>
+    <div class="comparison-item"><h4>🎯 Loss</h4><p>论文未明说；<strong>推断为 angular loss</strong>（见 4.4）。</p></div>
+    <div class="comparison-item"><h4>🏃 训练</h4><p>100 epoch，lr 1e-4 减半，SPD 形变 + shot noise 增强。</p></div>
+  </div>
+
+  <h2>4.2 数据集准备</h2>
+  <h3>4.2.1 模拟训练数据生成（核心步骤）</h3>
+  <div class="formula">
+    <span class="c"># 伪代码（PyTorch 风格，单个 set 的向量化生成）</span><br>
+    SPD_DB = load('illuminants_32768.npy')   # (32768, L)  L=波长采样点数<br>
+    REF_DB = load('reflectances_6814.npy')   # (6814, L)<br>
+    S      = load('S1M_sensitivity_15ch.npy')# (15, L)  相机敏感度<br>
+    <br>
+    for each set (128 measurements):<br>
+    &nbsp;&nbsp;n_illum = 1 if rand()&lt;0.5 else 2..K        # 半单光源半混合<br>
+    &nbsp;&nbsp;illum = mix(SPD_DB.sample(n_illum), weights) # 混合成专属光源 (L,)<br>
+    &nbsp;&nbsp;for each of 128 measurements:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;r = REF_DB.sample(randint(1,15))     # 1~15 个反射率<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;surf = mean(r, axis=0)              # 该点表面光谱 (L,)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;meas = (illum * surf) @ S.T         # 投影到 15 通道  → 输入<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;gt_wp = normalize(illum @ S.T)      # 该点真值白点 → 目标<br>
+    # 总 set 数 = 32768 * 16 ≈ 524288；每 epoch 重新采样反射率
+  </div>
+  <p><strong>数据库来源提示</strong>：光源 SPD 可用公开库（如 <a href="https://www.rit.edu/cos/colorscience/" target="_blank">RIT 的 illumination 数据库</a>、或 EU 项目 <a href="https://www.uef.fi/web/spectral" target="_blank">University of Eastern Finland spectral library</a>）；反射率可用 <a href="https://www.rit.edu/cos/colorscience/" target="_blank">RIT Munsell /师</a> 等。论文用了"公开 + 内部"混合。</p>
+
+  <h3>4.2.2 MIMI 验证集采集（硬件协议）</h3>
+  <ul>
+    <li>并排固定 <strong>RGB 相机</strong> 与 <strong>MSI 快照模组</strong>（论文用 Tab S9 + S1-M），三脚架 + 遥控触发防抖。</li>
+    <li>每个场景拍两张：<strong>无白卡</strong>（跑算法）、<strong>有白卡 + Macbeth 色卡</strong>（量真值）。</li>
+    <li>白卡贴在平面上，量其 MSI 值作为该处真值白点；Macbeth 用于算 ΔE2000。</li>
+    <li>人工标注白卡与色卡位置（得到 774 对稀疏白点真值）。</li>
+  </ul>
+
+  <h3>4.2.3 相机 SSF</h3>
+  <p>训练 RGB 版需 Nikon D810（或目标相机）的 SSF；训练 MSI 版需 S1-M 的 15 通道敏感度（论文 Figure 1）。SSF 可来自厂商或 <a href="https://www.rit.edu/cos/colorscience/" target="_blank">RIT 数据库</a>。MSI→任意 RGB 的转换用最小二乘拟合 S1-M 敏感度到目标 SSF（论文 Figure 6 显示拟合很准）。</p>
+
+  <h2>4.3 网络实现（PyTorch 草图）</h2>
+  <div class="formula">
+    <span class="c"># Set Transformer 四块（简化）</span><br>
+    encoder   = MLP(d_in, hidden)              # 逐点，无交互<br>
+    aggregate = ISAB(hidden, num_inducing)     # Set Transformer 聚合<br>
+    disperse  = ISAB(hidden, num_inducing)     # Set Transformer 分发<br>
+    decoder   = MLP(hidden, d_out)             # 逐点输出白点<br>
+    <br>
+    x = encoder(X)              # (128, hidden)<br>
+    x = aggregate(x)            # 聚合全局光源信息<br>
+    x = disperse(x)             # 回灌到每点<br>
+    wp = normalize(decoder(x))  # (128, 15) 每点白点，L2 归一化
+  </div>
+  <p><strong>控制 2M 参数</strong>：hidden ≈ 64–128，inducing points m ≈ 16–32，堆叠 1–2 层 ISAB。相比 LSMI-U 的 56M，这是数量级差距，正是为移动端设计。</p>
+
+  <h2>4.4 Loss 函数（⚠️ 论文未明确给出，以下为推断）</h2>
+  <div class="callout">
+    <div class="ttl">⚠️ 诚实标注</div>
+    <p>论文正文<strong>没有写出 loss 公式</strong>，只说"validation loss"。基于其评估指标是<strong>白点角度误差</strong>，且输出白点已归一化，最合理的推断是 <strong>angular loss</strong>：</p>
+  </div>
+  <div class="formula">
+    L = arccos( (p · g) / (‖p‖ · ‖g‖) )<br>
+    <span class="c">// p: 预测白点(已 L2 归一化)  g: 真值白点(已归一化)<br>
+    // 也可取 1 - cos_sim 作为可微替代，训练更稳定</span>
+  </div>
+  <p>若同时优化颜色准确度，可能加 ΔE 相关项，但论文未提，故不臆断。</p>
+
+  <h2>4.5 训练协议</h2>
+  <ul>
+    <li><strong>Epochs</strong>：100。</li>
+    <li><strong>优化器/学习率</strong>：初始 <code>1e-4</code>（Adam 类），若验证损失连续 5 epoch 不显著下降则 <strong>减半</strong>。</li>
+    <li><strong>数据增强</strong>：① 光源 SPD 的小随机形变（模拟光源微变化）；② 给模拟测量加<strong>真实散粒噪声 shot noise</strong>（泊松噪声，模拟低光信噪比）。</li>
+    <li><strong>每 epoch 重采样</strong>：打乱 SPD 顺序、重新抽反射率 → 等效无限数据。</li>
+  </ul>
+
+  <h2>4.6 评估协议</h2>
+  <ul>
+    <li>指标：白点<strong>角度误差</strong>的 mean/median；白平衡后 <strong>ΔE2000</strong>（用 Macbeth）。</li>
+    <li>跨相机比较：把 MSI 白点转到目标 RGB 相机域后再算角度（Table 4 的 MSI→MSI→RGB）。</li>
+    <li>注意 Table 2（密集白点图）与 Table 3（稀疏白点）误差口径不同，<strong>不能直接横比</strong>（论文明确提醒）。</li>
+  </ul>
+</div>
+
+<!-- ===== 第5章 引用论文 ===== -->
+<div class="section">
+  <div class="section-title"><span class="num">5</span> 论文引用的关键论文深入讲解</div>
+  <div class="section-desc">你要求"论文引入了其他论文也要分析"。下面把 CIC33 依赖/对照的 5 篇核心引用逐一展开（其余 [1–4][7–9] 在末节简述）。</div>
+
+  <div class="paper-card academic">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div><div class="paper-title">[12] Set Transformer: A Framework for Permutation-Invariant Neural Networks</div>
+      <div class="paper-authors">Lee J, Lee Y, Kim J, Kosiorek A, Choi S, Teh YW · ICML 2019 · <a href="https://arxiv.org/abs/1810.00825" target="_blank">arXiv:1810.00825</a></div></div>
+      <span class="paper-badge badge-academic">网络 Backbone</span>
+    </div>
+    <div class="paper-body" style="margin-top:14px;">
+      <p><strong>为什么重要</strong>：CIC33 的 aggregation/dispersion 两块直接用它。它解决"输入是一堆没有顺序的东西（set），输出也要与顺序无关"的任务。</p>
+      <h4>核心组件</h4>
+      <ul>
+        <li><strong>MAB(A,B)</strong> = LayerNorm(A + rFF(LayerNorm(A + MHA(A,B))))：标准多头注意力，A 是 query，B 是 key/value。</li>
+        <li><strong>SAB(X)</strong> = MAB(X, X)：自注意力（X 同时是 Q/K/V）。</li>
+        <li><strong>ISAB(X)</strong> = MAB(X, MAB(I, X))：<strong>诱导点 I</strong>（可学习的小集合，如 16–32 个）先"压缩"X 的信息，再让 X 向压缩后的 I 做注意力。复杂度从 O(n²) 降到 O(n·m)，且对 X 的行顺序<strong>置换不变</strong>。这正是 CIC33 想要的：128 个测量打乱顺序，结果只是对应打乱。</li>
+        <li><strong>PMA(X)</strong> = MAB(I, SAB(X))：用若干 seed 向量做"池化"，把集合压成固定个数的全局表示。</li>
+      </ul>
+      <p><strong>CIC33 的用法对应</strong>：encoder（逐点 MLP）→ <strong>aggregation ≈ ISAB</strong>（把集合聚成全局光源表示）→ <strong>dispersion ≈ ISAB / SAB</strong>（把全局表示分发回每点）→ decoder（逐点 MLP）。轻量 + 置换不变 + 线性复杂度，三者兼得，故能在手机跑。</p>
+    </div>
+  </div>
+
+  <div class="paper-card samsung">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div><div class="paper-title">[5] Large Scale Multi-Illuminant (LSMI) Dataset</div>
+      <div class="paper-authors">Kim D, et al. · ICCV 2021, pp.2410–2419 · <a href="https://github.com/DY112/LSMI-dataset" target="_blank">GitHub</a></div></div>
+      <span class="paper-badge badge-samsung">Benchmark + 批判对象</span>
+    </div>
+    <div class="paper-body" style="margin-top:14px;">
+      <p><strong>它是什么</strong>：第一个大规模、带<strong>逐像素密集白点真值</strong>的多光源数据集（7486 张 / 2762 场景，3 台相机）。获取真值的方法是<strong>差分成像法（differential imaging）</strong>：控制场景里"除了一个光源外全灭"，分别拍图，用差分反解每个光源的白点图。</p>
+      <p><strong>LSMI-U 网络</strong>：论文配套的 local WB 网络，<strong>56M 参数</strong>，multi-scale 结构。它是 CIC33 的 SOTA 对照。</p>
+      <p><strong>CIC33 如何用它</strong>：① 在 LSMI 测试集上 benchmark（Table 2，打平）；② 在 MIMI 上 benchmark（Table 3，SPTY 泛化更优）；③ <strong>批判其成像模型</strong>（第 2.4 节）：LSMI 的密集白点真值建立在 RGB 精确的近似上，而该近似对 RGB 不准——所以 LSMI 真值本身有系统误差，训练出的 LSMI-U 泛化差。</p>
+    </div>
+  </div>
+
+  <div class="paper-card huawei">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div><div class="paper-title">[10] Single Pixel Spectral Color Constancy</div>
+      <div class="paper-authors">Koskinen S, Acar E, Kämäräinen JK · IJCV 132:287–299, 2024（华为芬兰 + 坦佩雷）· <a href="https://doi.org/10.1007/s11263-023-01867-x" target="_blank">DOI</a></div></div>
+      <span class="paper-badge badge-huawei">多光谱 WB 前身（华为）</span>
+    </div>
+    <div class="paper-body" style="margin-top:14px;">
+      <p><strong>它与 CIC33 的关系</strong>：这是<strong>把多光谱用于白平衡</strong>的奠基之作（在我们《华为路线图》文档里详述）。核心发现：</p>
+      <ul>
+        <li>只需 <strong>10–14 个光谱通道</strong> 即可形成光源的"光谱指纹"；场景平均光谱形态 ≈ 光源光谱。</li>
+        <li>方法：用 <strong>RGB-to-Spectral</strong> 把 RGB 上采样成光谱，再估光源；在 235 张真实多光谱图（Mate 20 Pro + 色度计）上验证，比 RGB 方法提升 40–70%。</li>
+      </ul>
+      <p>CIC33 在引言里把它列为"多光谱作为白平衡额外输入"的代表（[9][10][11]），但强调：<strong>前人没做"局部"白点估计</strong>——这正是 CIC33 的差异化贡献（局部 + 轻量网络 + 真实硬件验证）。</p>
+    </div>
+  </div>
+
+  <div class="paper-card academic">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div><div class="paper-title">[6] Attentive Illumination Decomposition (AID) for Multi-Illuminant WB</div>
+      <div class="paper-authors">Kim D, et al. · CVPR 2024, pp.25512–25521 · <a href="https://sites.google.com/view/dong-young-kim/projects/aid" target="_blank">项目页</a></div></div>
+      <span class="paper-badge badge-academic">Local WB SOTA</span>
+    </div>
+    <div class="paper-body" style="margin-top:14px;">
+      <p><strong>它是什么</strong>：当前 multi-illuminant / local WB 的强基线。核心思路是用 <strong>slot attention</strong> 把场景"分解"成若干个（如 2–4 个）代表光源，再学一个"质心匹配损失（centroid-matching loss）"让每个像素归属到合适的光源。输出一张光照图。</p>
+      <p><strong>与 CIC33 的对照</strong>：CIC33 引言把 [5][6] 并列为"local white point 近期兴趣"的代表。区别在于：AID 仍基于 RGB、网络较重；CIC33 主张用<strong>多光谱 + 超轻量 Set Transformer</strong> 来降歧义、降算力。两者是"同一目标的不同技术路线"（RGB 分解 vs 多光谱感知）。</p>
+    </div>
+  </div>
+
+  <div class="paper-card samsung">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div><div class="paper-title">[11] Beyond RGB: A Real World Dataset for Multispectral Imaging in Mobile Devices</div>
+      <div class="paper-authors">Glatt O, et al. · WACV 2024, pp.4344–4354 · <a href="https://openaccess.thecvf.com/content/WACV2024/html/Glatt_Beyond_RGB_A_Real_World_Dataset_for_Multispectral_Imaging_in_WACV_2024_paper.html" target="_blank">链接</a></div></div>
+      <span class="paper-badge badge-samsung">多光谱移动数据</span>
+    </div>
+    <div class="paper-body" style="margin-top:14px;">
+      <p><strong>它是什么</strong>：三星的 <strong>16 通道 MSI</strong> 真实移动数据集（1680 场景，含 36 维真实光谱真值，Samsung/OPPO 手机配对）。和 CIC33 同属"移动多光谱"阵营，但 Beyond RGB 偏"光谱重建/增强"通用任务，CIC33 偏"局部白平衡"特定任务。两者共同说明：<strong>移动多光谱硬件（双摄/面阵）正在成为产业共识</strong>。</p>
+    </div>
+  </div>
+
+  <h2>5.6 其余引用简述（供检索）</h2>
+  <ul>
+    <li><strong>[1] Edge-based color constancy</strong>（Van De Weijer 2007）：基于图像边缘的统计法，传统 WB 代表。</li>
+    <li><strong>[2] Cheng et al. 2014</strong>：论证"为什么空间域方法有效 + 颜色分布的作用"。</li>
+    <li><strong>[3] Convolutional Color Constancy</strong>（Barron, ICCV 2015）：第一个 CNN 做 WB。</li>
+    <li><strong>[4] FC4</strong>（Hu et al., CVPR 2017）：全卷积 + 置信度加权池化。</li>
+    <li><strong>[7] Integral Fast Fourier Color Constancy (IFFCC)</strong>（Wei et al., CVPR 2025）：用积分 UV 直方图做高效局部 WB（详见《Local AWB 待解难题》）。</li>
+    <li><strong>[8] White balance under mixed illumination using flash</strong>（Hui et al., ICCP 2016）：用闪光灯辅助解混合光照。</li>
+    <li><strong>[9] Illumination and reflectance spectra separation</strong>（Zheng et al., CVPR 2015）：高光谱 + 低秩矩阵分解分离光源与反射率——多光谱分离的早期思路。</li>
+  </ul>
+</div>
+
+<!-- ===== 第6章 总结 ===== -->
+<div class="section">
+  <div class="section-title"><span class="num">6</span> 总结、局限与未来方向</div>
+
+  <h2>6.1 论文贡献一句话总结</h2>
+  <div class="info-box teal">
+    <p>用一个 <strong>2M 参数的 Set Transformer</strong>，在 <strong>大规模模拟多光谱数据</strong> 上训练，实现了：① 在 LSMI 上打平 56M 的 SOTA；② <strong>在真实多样场景上泛化更好</strong>；③ <strong>多光谱比 RGB 局部白点更准（角度↓29%、ΔE↓25%）</strong>。并提出可公开、可转任意 RGB 相机的 <strong>MIMI 验证集</strong>。</p>
+  </div>
+
+  <h2>6.2 局限（阅读时要有保留）</h2>
+  <ul>
+    <li><strong>模拟数据简化</strong>：无空间/光谱相关性、无复杂光-物质交互，虽"够用"但非真实分布。</li>
+    <li><strong>稀疏真值</strong>：MIMI 只有白卡处的稀疏白点，不是密集白点图——评价口径与 LSMI 不同，且无法精细评局部。</li>
+    <li><strong>仅 15 通道</strong>：相较华为/三星的 16 通道，通道数与几何（S1-M 是快照式滤光片）有特定限制。</li>
+    <li><strong>未做端到端 CCM</strong>：只估白点，没联合颜色校正（对比华为 WACV 2025 的 AWB+CCM 联合优化）。</li>
+    <li><strong>Loss 未公开</strong>：复现需自行推断（见 4.4）。</li>
+  </ul>
+
+  <h2>6.3 未来方向（论文自述 + 本系列延伸）</h2>
+  <ul>
+    <li><strong>扩展 MIMI + 密集真值协议</strong>：论文自己说要"devise a protocol for dense local white point in-the-wild"。</li>
+    <li><strong>显式建模局部歧义</strong>：用多光谱信息建模"白点不确定性"，再结合<strong>场景内容（语义）</strong> 选实际白点——这会和 AID 的"光源分解 + 语义消歧"思路汇合。</li>
+    <li><strong>多光谱 + 光源分解（最有前景的融合）</strong>：把 AID 式 slot attention 分解，接到多光谱输入上——同时攻击"歧义"与"可解释"，且天然契合华为红枫栈（见《Local AWB 待解难题》第 6 节）。</li>
+  </ul>
+</div>
+
+<!-- ===== 参考文献 ===== -->
+<div class="references">
+  <h3>参考文献（CIC33 原文 [1]–[12]）</h3>
+  <ol>
+    <li>[1] Van De Weijer J, Gevers T, Gijsenij A. Edge-based color constancy. IEEE TIP 16(9):2207–2214, 2007.</li>
+    <li>[2] Cheng D, Prasad DK, Brown M. Illuminant estimation for color constancy: why spatial-domain methods work. JOSA A 31(5):1049–1058, 2014.</li>
+    <li>[3] Barron JT. Convolutional Color Constancy. ICCV 2015.</li>
+    <li>[4] Hu Y, Wang B, Lin S. FC4: Fully Convolutional Color Constancy with Confidence-weighted Pooling. CVPR 2017, pp.4085–4094.</li>
+    <li>[5] Kim D, et al. Large Scale Multi-Illuminant (LSMI) Dataset for Developing White Balance Algorithm Under Mixed Illumination. ICCV 2021, pp.2410–2419. <a href="https://github.com/DY112/LSMI-dataset">GitHub</a></li>
+    <li>[6] Kim D, et al. Attentive Illumination Decomposition Model for Multi-Illuminant White Balancing (AID). CVPR 2024, pp.25512–25521. <a href="https://sites.google.com/view/dong-young-kim/projects/aid">项目页</a></li>
+    <li>[7] Wei W, et al. Integral Fast Fourier Color Constancy (IFFCC). CVPR 2025.</li>
+    <li>[8] Hui Z, et al. White balance under mixed illumination using flash photography. ICCP 2016.</li>
+    <li>[9] Zheng Y, Sato I, Sato Y. Illumination and reflectance spectra separation of a hyperspectral image meets low-rank matrix factorization. CVPR 2015, pp.1779–1787.</li>
+    <li>[10] Koskinen S, Acar E, Kämäräinen JK. Single Pixel Spectral Color Constancy. IJCV 132:287–299, 2024. <a href="https://doi.org/10.1007/s11263-023-01867-x">DOI</a></li>
+    <li>[11] Glatt O, et al. Beyond RGB: A Real World Dataset for Multispectral Imaging in Mobile Devices. WACV 2024, pp.4344–4354. <a href="https://openaccess.thecvf.com/content/WACV2024/html/Glatt_Beyond_RGB_A_Real_World_Dataset_for_Multispectral_Imaging_in_WACV_2024_paper.html">链接</a></li>
+    <li>[12] Lee J, Lee Y, Kim J, Kosiorek A, Choi S, Teh YW. Set Transformer: A Framework for Attention-based Permutation-Invariant Neural Networks. ICML 2019, pp.3744–3753. <a href="https://arxiv.org/abs/1810.00825">arXiv</a></li>
+  </ol>
+</div>
+
+<div class="footer">
+  <div>CIC33 论文详细讲解（小白友好版） · Spectricity, CIC33 2025</div>
+  <div style="margin-top:6px;color:#5b6670;">配套文档：多光谱AWB研究报告 / 华为多光谱AWB路线图 / 白平衡与光源概念辨析 / LocalAWB研究热点与待解难题</div>
+</div>
+
+</div>
+</body>
+</html>
