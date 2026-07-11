@@ -1,8 +1,9 @@
-# 版权文献（不随仓库发布）
-CIC33.pdf
+# 以下提取文本不随仓库发布（原始 PDF 已按开源论文纳入）
 CIC33_fulltext.txt
+
 # 项目内部数据
 .workbuddy/
+
 # Python 缓存
 __pycache__/
 *.pyc

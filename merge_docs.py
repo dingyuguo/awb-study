@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""合并 5 份多光谱 AWB 研究文档为带总目录(侧边栏)的单文件 HTML。
-按每份文档实际标题结构分别配置 TOC 抽取规则。"""
-import re, os
+"""合并 5 份多光谱 AWB 文档为单文件《多光谱AWB研究全集.html》。
+方案：主页面 = 侧边目录 + 单个 <iframe>；每份文档完整嵌入 <template>，
+iframe 内各自携带原始 CSS 隔离渲染，外观与单份文档完全一致（无全局 CSS 冲突）。"""
+import re, os, json
 
 WORK = "/Users/ding/WorkBuddy/AWB研究"
 
-# (doc_id, 文件名, 文档标题, 简介, 标题规则)
-# 标题规则: [(open_tag_start, close_tag, level), ...]  level=2 主章 / level=3 子节
-# open_tag_start 不含结尾 '>'，例如 '<div class="section-title"' 或 '<h3'
 DOCS = [
     ("doc1", "多光谱AWB研究报告.html", "多光谱 AWB 研究综合报告",
      "综合研究入口：研究背景、8 篇核心论文分析、华为专题、技术路线对比、数据集汇总与未来方向。",
@@ -27,110 +25,152 @@ DOCS = [
      [(r'<h2', '</h2>', 2), (r'<h3', '</h3>', 3)]),
 ]
 
-def read_body_css(fn):
-    txt = open(os.path.join(WORK, fn), encoding="utf-8").read()
-    style = re.search(r"<style>(.*?)</style>", txt, re.S).group(1)
-    body = re.search(r"<body>(.*?)</body>", txt, re.S).group(1)
-    return style, body
+# 注入到每个文档 <body> 末尾的脚本：负责 iframe 内滚动高亮 + 响应父页面跳转
+INJECT_JS = """
+<script>
+(function(){
+  var map={};document.querySelectorAll('[id]').forEach(function(e){map[e.id]=e;});
+  var t=Object.keys(map).map(function(k){return map[k];});
+  if(!('IntersectionObserver' in window)||!t.length) return;
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ parent.postMessage({__awb:true,id:e.target.id},'*'); } });
+  },{rootMargin:'-12% 0px -82% 0px'});
+  t.forEach(function(x){ io.observe(x); });
+  window.addEventListener('message',function(e){
+    if(e.data&&e.data.__goto){ var el=document.getElementById(e.data.__goto); if(el) el.scrollIntoView({behavior:'smooth'}); }
+  });
+})();
+</script>
+"""
 
-# 1) 合并 CSS（去重保序，主报告放最前保证最完整）
-all_css_lines = []
-for docid, fn, *_ in DOCS:
-    style, _ = read_body_css(fn)
-    for ln in style.splitlines():
-        all_css_lines.append(ln)
-seen, css = set(), []
-for ln in all_css_lines:
-    s = ln.strip()
-    if s and s not in seen:
-        seen.add(s); css.append(ln)
-css_text = "\n".join(css)
+def read_full(fn):
+    return open(os.path.join(WORK, fn), encoding="utf-8").read()
 
-# 2) 逐文档处理：加锚点 + 收集 TOC
-toc = []  # (docid, doc_title, level, anchor, text)
-sections_html = []
+# 1) 抽取每份文档的标题锚点（用于 TOC），并构造嵌入用的完整 HTML（注入滚动脚本）
+toc = []          # (docid, doc_title, level, anchor, plain_text)
+templates = {}    # docid -> 完整 HTML（含注入脚本）
 
-for idx, (docid, fn, title, desc, rules) in enumerate(DOCS, start=1):
-    _, body = read_body_css(fn)
-
+for docid, fn, title, desc, rules in DOCS:
+    html = read_full(fn)
+    # 加锚点
     for open_re, close_tag, level in rules:
         close_re = re.escape(close_tag)
-        # group1=完整开标签(含class), group2=属性, group3=内部内容
         pattern = r'(' + open_re + r'([^>]*)>)' + r'(.*?)' + close_re
         counter = {"n": 0}
         def repl(m, level=level, counter=counter):
             counter["n"] += 1
-            open_full = m.group(1)          # 完整开标签, 如 <div class="section-title">
+            open_full = m.group(1)
             inner = m.group(3)
             plain = re.sub(r"<[^>]+>", "", inner).strip()
             plain = re.sub(r"\s+", " ", plain)
             anchor = f"{docid}-h{level}-{counter['n']}"
             toc.append((docid, title, level, anchor, plain))
-            # 在开标签的 '>' 前插入 id, 保留原 class 等属性
             new_open = open_full[:-1] + f' id="{anchor}"' + '>'
             return f'{new_open}{inner}{close_tag}'
-        body = re.sub(pattern, repl, body, flags=re.S)
+        html = re.sub(pattern, repl, html, flags=re.S)
+    # 注入滚动脚本（在 </body> 前）
+    html = html.replace("</body>", INJECT_JS + "</body>", 1)
+    templates[docid] = html
 
-    cover = f'''
-    <section id="{docid}" class="doc-cover">
-      <div class="doc-cover-badge">文档 {idx} / {len(DOCS)}</div>
-      <h1 class="doc-cover-title">{title}</h1>
-      <p class="doc-cover-desc">{desc}</p>
-    </section>
-    <hr class="doc-sep"/>
-    '''
-    sections_html.append(cover + body)
-
-content_inner = "\n".join(sections_html)
-
-# 3) 生成侧边栏 TOC
-toc_html_parts = ['<div class="toc-group"><a href="#top" class="toc-link toc-home">⌂ 全集首页</a></div>']
+# 2) 生成侧边栏 TOC
+toc_html_parts = ['<div class="toc-group"><a href="#" class="toc-link toc-home" data-doc="doc1">⌂ 全集首页</a></div>']
 cur_doc = None
 for (docid, doc_title, level, anchor, text) in toc:
     if docid != cur_doc:
         cur_doc = docid
-        toc_html_parts.append(f'<div class="toc-group"><div class="toc-doc">{doc_title}</div>')
+        toc_html_parts.append(
+            f'<div class="toc-group"><div class="toc-doc" data-doc="{docid}">{doc_title}</div>')
     cls = "toc-link toc-h2" if level == 2 else "toc-link toc-h3"
     toc_html_parts.append(f'<a href="#{anchor}" class="{cls}">{text}</a>')
 toc_html = "\n".join(toc_html_parts)
 
-# 4) 布局 CSS
-layout_css = """
+# 3) 主页面 CSS（仅主框架，文档自身样式在 iframe 内隔离）
+master_css = """
 *{box-sizing:border-box;}
-body{margin:0;}
-.shell{display:flex;min-height:100vh;}
+html,body{margin:0;padding:0;height:100%;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:#070a10;color:#c3ccd8;overflow:hidden;}
+.shell{display:flex;height:100vh;}
 .sidebar{position:fixed;left:0;top:0;width:320px;height:100vh;overflow-y:auto;
   background:linear-gradient(180deg,#0c1018,#0a0d13);border-right:1px solid rgba(120,140,170,.18);
   padding:22px 0 60px;font-size:13px;z-index:50;}
 .sidebar-title{font-size:16px;font-weight:700;color:#e8eef7;padding:0 20px 6px;letter-spacing:.3px;}
-.sidebar-sub{font-size:11px;color:#6b7686;padding:0 20px 14px;border-bottom:1px solid rgba(120,140,170,.12);margin-bottom:10px;line-height:1.5;}
+.sidebar-sub{font-size:11px;color:#6b7686;padding:0 20px 14px;border-bottom:1px solid rgba(120,140,170,.12);
+  margin-bottom:10px;line-height:1.5;}
 .toc-group{margin:2px 0 8px;}
-.toc-doc{font-size:12px;font-weight:700;color:#7fd1c4;padding:8px 20px 4px;letter-spacing:.2px;}
+.toc-doc{font-size:12.5px;font-weight:700;color:#7fd1c4;padding:10px 20px 5px;cursor:pointer;letter-spacing:.2px;}
+.toc-doc:hover{color:#a7e8de;}
 .toc-link{display:block;padding:4px 20px;color:#9aa6b6;text-decoration:none;line-height:1.45;
-  border-left:2px solid transparent;transition:all .15s;}
+  border-left:2px solid transparent;transition:all .15s;cursor:pointer;}
 .toc-link:hover{color:#e8eef7;background:rgba(120,140,170,.08);}
 .toc-h2{font-weight:600;color:#c3ccd8;}
 .toc-h3{padding-left:34px;font-size:12px;color:#828d9d;}
-.toc-home{font-weight:700;color:#e8eef7;background:rgba(63,185,80,.08);border-left:2px solid #3fb950;}
+.toc-home{font-weight:700;color:#e8eef7;background:rgba(63,185,80,.08);border-left:2px solid #3fb950;margin-bottom:4px;}
 .toc-link.active{color:#fff;background:rgba(63,185,80,.14);border-left:2px solid #3fb950;}
-.content{margin-left:320px;flex:1;min-width:0;}
-.doc-cover{padding:56px 48px 28px;}
-.doc-cover-badge{display:inline-block;font-size:12px;color:#3fb950;border:1px solid rgba(63,185,80,.4);
-  padding:3px 12px;border-radius:20px;margin-bottom:16px;background:rgba(63,185,80,.06);}
-.doc-cover-title{font-size:34px;font-weight:800;color:#f2f6fc;margin:0 0 12px;line-height:1.2;}
-.doc-cover-desc{font-size:15px;color:#9aa6b6;max-width:780px;line-height:1.7;margin:0;}
-.doc-sep{border:none;border-top:1px solid rgba(120,140,170,.15);margin:0 48px;}
-.content > section[id^="doc"]{scroll-margin-top:20px;}
-.content [id]{scroll-margin-top:16px;}
+.content{margin-left:320px;height:100vh;overflow:hidden;background:#0a0d13;}
+.viewer{width:100%;height:100%;border:0;display:block;background:#0a0d13;}
+.menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:60;background:#1a2030;color:#e8eef7;
+  border:1px solid rgba(120,140,170,.3);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;}
 @media(max-width:900px){
   .sidebar{transform:translateX(-100%);transition:.25s;width:290px;}
   .sidebar.open{transform:translateX(0);}
   .content{margin-left:0;}
   .menu-btn{display:block;}
 }
-.menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:60;background:#1a2030;color:#e8eef7;
-  border:1px solid rgba(120,140,170,.3);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;}
 """
+
+# 4) 主页面 JS
+master_js = """
+(function(){
+  var viewer=document.getElementById('viewer');
+  var DOC={};
+  ['doc1','doc2','doc3','doc4','doc5'].forEach(function(id){
+    DOC[id]=document.getElementById('tpl-'+id).innerHTML;
+  });
+  var current=null, pending=null;
+  function show(docId, anchor){
+    if(current!==docId){
+      current=docId; pending=anchor||null;
+      viewer.srcdoc=DOC[docId];
+    } else if(anchor){
+      var d=viewer.contentDocument;
+      if(d){ var el=d.getElementById(anchor); if(el) el.scrollIntoView({behavior:'smooth'}); }
+    }
+  }
+  viewer.addEventListener('load',function(){
+    if(pending && viewer.contentDocument){
+      var el=viewer.contentDocument.getElementById(pending);
+      if(el) el.scrollIntoView();
+      pending=null;
+    }
+  });
+  document.querySelectorAll('[data-doc]').forEach(function(a){
+    a.addEventListener('click',function(ev){ ev.preventDefault(); show(a.getAttribute('data-doc')); });
+  });
+  document.querySelectorAll('.toc-link[href^="#"]').forEach(function(a){
+    a.addEventListener('click',function(ev){
+      ev.preventDefault();
+      var href=a.getAttribute('href');
+      if(href==='#top'){ window.scrollTo({top:0,behavior:'smooth'}); return; }
+      var anchor=href.slice(1);
+      var docId=anchor.split('-')[0];
+      show(docId, anchor);
+    });
+  });
+  window.addEventListener('message',function(e){
+    if(e.data&&e.data.__awb){
+      document.querySelectorAll('.toc-link').forEach(function(x){ x.classList.remove('active'); });
+      var a=document.querySelector('.toc-link[href="#'+e.data.__awb+'"]');
+      if(a) a.classList.add('active');
+    }
+  });
+  show('doc1');
+})();
+"""
+
+# 5) 组装
+templates_html = "\n".join(
+    f'<template id="tpl-{docid}">{templates[docid]}</template>' for docid, *_ in DOCS)
 
 html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -139,8 +179,7 @@ html = f"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>多光谱 AWB 研究全集</title>
 <style>
-{css_text}
-{layout_css}
+{master_css}
 </style>
 </head>
 <body id="top">
@@ -152,32 +191,12 @@ html = f"""<!DOCTYPE html>
     {toc_html}
   </nav>
   <main class="content">
-    <section id="overview" class="doc-cover">
-      <div class="doc-cover-badge">总目录</div>
-      <h1 class="doc-cover-title">多光谱 AWB 研究全集</h1>
-      <p class="doc-cover-desc">本全集整合了关于<strong>多光谱自动白平衡（AWB）</strong>与<strong>局部 AWB（Local AWB）</strong>的五份研究文档，覆盖：领域综述与前沿论文、WB/CCM/光源/白点的概念辨析、华为从学术研究到红枫落地的完整技术路线、Local AWB 的研究热点与待解难题，以及对 Spectricity CIC33 论文的小白向逐句精讲。点击左侧目录可在各章节间跳转。</p>
-    </section>
-    <hr class="doc-sep"/>
-    {content_inner}
+    <iframe id="viewer" class="viewer" title="文档查看器"></iframe>
   </main>
 </div>
+{templates_html}
 <script>
-(function(){{
-  var links = Array.prototype.slice.call(document.querySelectorAll('.toc-link[href^="#"]'));
-  var map = {{}};
-  links.forEach(function(a){{ map[a.getAttribute('href').slice(1)] = a; }});
-  var targets = Array.prototype.slice.call(document.querySelectorAll('[id]')).filter(function(el){{ return map[el.id]; }});
-  var obs = new IntersectionObserver(function(entries){{
-    entries.forEach(function(e){{
-      if(e.isIntersecting){{
-        links.forEach(function(l){{ l.classList.remove('active'); }});
-        var a = map[e.target.id];
-        if(a) a.classList.add('active');
-      }}
-    }});
-  }}, {{rootMargin:'-10% 0px -80% 0px', threshold:0}});
-  targets.forEach(function(t){{ obs.observe(t); }});
-}})();
+{master_js}
 </script>
 </body>
 </html>

@@ -20,5 +20,6 @@
 
 ## 说明
 
-- 本地论文 `CIC33.pdf` 与提取文本 `CIC33_fulltext.txt` 因版权原因**未随本仓库发布**。
+- 本地论文 `CIC33.pdf`（Spectricity 等, CIC33 2025, *Enhancing Local Auto White Balance with Multispectral Images*）为**开源/开放获取论文**，已随本仓库发布，供学习研究使用。
+- 由论文 PDF 提取的文本 `CIC33_fulltext.txt` **未**纳入仓库（仅本地留存）。
 - 研究内容基于公开论文与公开技术资料整理，仅供参考与学习。
