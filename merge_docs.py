@@ -113,7 +113,7 @@ master_css = """
 html,body{margin:0;padding:0;height:100%;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   background:#070a10;color:#c3ccd8;overflow:hidden;}
-.shell{display:flex;height:100vh;}
+.shell{position:relative;min-height:100vh;}
 .sidebar{position:fixed;left:0;top:0;width:280px;height:100vh;overflow-y:auto;
   background:linear-gradient(180deg,#0c1018,#0a0d13);border-right:1px solid rgba(120,140,170,.18);
   padding:22px 0 60px;font-size:13px;z-index:50;}
@@ -130,14 +130,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .toc-h3{padding-left:34px;font-size:12px;color:#828d9d;}
 .toc-home{font-weight:700;color:#e8eef7;background:rgba(63,185,80,.08);border-left:2px solid #3fb950;margin-bottom:4px;}
 .toc-link.active{color:#fff;background:rgba(63,185,80,.14);border-left:2px solid #3fb950;}
-.content{margin-left:280px;height:100vh;overflow:hidden;background:#0a0d13;}
+.content{position:fixed;top:0;left:280px;right:0;bottom:0;overflow:hidden;background:#0a0d13;}
 .viewer{width:100%;height:100%;border:0;display:block;background:#0a0d13;}
 .menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:60;background:#1a2030;color:#e8eef7;
   border:1px solid rgba(120,140,170,.3);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;}
 @media(max-width:900px){
   .sidebar{transform:translateX(-100%);transition:.25s;width:260px;}
   .sidebar.open{transform:translateX(0);}
-  .content{margin-left:0;}
+  .content{left:0;}
   .menu-btn{display:block;}
 }
 """
